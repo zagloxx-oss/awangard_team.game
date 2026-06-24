@@ -81,7 +81,6 @@
         // --- ИНИЦИАЛИЗАЦИЯ ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a2b3c);
-        scene.fog = new THREE.Fog(0x1a2b3c, 50, 90);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 1.80, 5);
@@ -150,7 +149,7 @@
         fill.position.set(-20, 10, -20);
         scene.add(fill);
 
-        // --- ТЕКСТУРЫ (загружаем все, но НЕБО — обязательно) ---
+        // --- ТЕКСТУРЫ ---
         const loader = new THREE.TextureLoader();
         const textures = {};
         async function loadTex(name) {
@@ -163,17 +162,16 @@
             zemla: 'zemla.jpg',
             trawa: 'trawa.jpg',
             stena: 'stena.jpg',
-            nebo: 'nebo.jpg',   // <-- обязательно должна быть
+            nebo: 'nebo.jpg',
             bereza: 'bereza.png'
         };
         await Promise.all(Object.entries(texList).map(async ([key, file]) => {
             const tex = await loadTex(file);
             if (tex) textures[key] = tex;
-            else console.warn(`SWILL: не загрузилась ${file}`);
+            else console.warn(`Не загрузилась ${file}`);
         }));
-        console.log('SWILL: текстуры загружены');
 
-        // --- НЕБО (гарантированно есть) ---
+        // --- НЕБО (гарантированно) ---
         if (textures.nebo) {
             const sky = new THREE.Mesh(
                 new THREE.SphereGeometry(200, 32, 32),
@@ -181,18 +179,19 @@
             );
             sky.position.y = 0;
             scene.add(sky);
-            console.log('SWILL: Небо загружено');
+            console.log('Небо загружено');
         } else {
             // Заглушка, если текстуры нет
-            console.warn('SWILL: Небо не загружено, создаём заглушку');
-            const skyGeo = new THREE.SphereGeometry(200, 32, 32);
-            const skyMat = new THREE.MeshBasicMaterial({ color: 0x4a7b9d, side: THREE.BackSide });
-            const sky = new THREE.Mesh(skyGeo, skyMat);
+            const sky = new THREE.Mesh(
+                new THREE.SphereGeometry(200, 32, 32),
+                new THREE.MeshBasicMaterial({ color: 0x4a7b9d, side: THREE.BackSide })
+            );
             sky.position.y = 0;
             scene.add(sky);
+            console.log('Небо-заглушка');
         }
 
-        // --- ПЛОСКАЯ ЗЕМЛЯ ---
+        // --- ЗЕМЛЯ (плоская) ---
         const groundMat = new THREE.MeshStandardMaterial({ map: textures.zemla || undefined, roughness: 0.8, metalness: 0.0, side: THREE.DoubleSide });
         const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), groundMat);
         ground.rotation.x = -Math.PI/2;
@@ -200,7 +199,7 @@
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // --- ТРАВА ---
+        // --- ТРАВА (пятно) ---
         if (textures.trawa) {
             const grassMat = new THREE.MeshStandardMaterial({ map: textures.trawa, roughness: 0.9, metalness: 0.0, side: THREE.DoubleSide });
             const grass = new THREE.Mesh(new THREE.PlaneGeometry(25, 25), grassMat);
@@ -210,7 +209,7 @@
             scene.add(grass);
         }
 
-        // --- ДЕРЕВЬЯ ---
+        // --- ДЕРЕВЬЯ (крест-накрест) ---
         function createCrossTree(texture, x, z, height = 5, width = 2.5) {
             if (!texture) return null;
             const mat = new THREE.MeshStandardMaterial({
@@ -230,7 +229,7 @@
             return group;
         }
 
-        const treePositions = [[-3,-2],[4,-3],[2,5],[-4,4],[6,2], [12,-8], [-10,6], [-7,-10]];
+        const treePositions = [[-3,-2],[4,-3],[2,5],[-4,4],[6,2]];
         const treeGroups = [];
         if (textures.bereza) {
             treePositions.forEach(([x,z]) => {
@@ -242,23 +241,17 @@
         // --- КОЛЛИЗИИ (общий массив) ---
         const colliders = [];
 
-        // Стена
-        const wallPos = new THREE.Vector3(-5, 2, -8);
-        const wallHalf = new THREE.Vector3(4, 2, 0.25);
-        colliders.push({ type: 'box', pos: wallPos, half: wallHalf });
+        // Стена (тестовая)
+        colliders.push({ type: 'box', pos: new THREE.Vector3(-5, 2, -8), half: new THREE.Vector3(4, 2, 0.25) });
 
         // Деревья (сферы)
         treeGroups.forEach((group) => {
             const pos = new THREE.Vector3();
             group.getWorldPosition(pos);
-            colliders.push({
-                type: 'sphere',
-                center: new THREE.Vector3(pos.x, 2.5, pos.z),
-                radius: 1.0
-            });
+            colliders.push({ type: 'sphere', center: new THREE.Vector3(pos.x, 2.5, pos.z), radius: 1.0 });
         });
 
-        // --- ДОМИК С ДВЕРЬЮ (ИСПРАВЛЕННЫЕ КОЛЛИЗИИ) ---
+        // --- ДОМИК С ДВЕРЬЮ (УПРОЩЁННЫЙ, БЕЗ ГЛЮКОВ) ---
         function createHouse() {
             const houseX = 10;
             const houseZ = -5;
@@ -266,7 +259,7 @@
             const depth = 3.5;
             const height = 3;
             const wallThick = 0.15;
-            const doorWidth = 1.0;
+            const doorWidth = 1.2;  // шире, чтобы точно пройти
             const doorHeight = 2.0;
 
             const wallMat = new THREE.MeshStandardMaterial({
@@ -275,52 +268,42 @@
                 metalness: 0.1,
                 side: THREE.DoubleSide,
             });
-            const roofMat = new THREE.MeshStandardMaterial({
-                color: 0x8b5a2b,
-                roughness: 0.9,
-                metalness: 0.0,
-                side: THREE.DoubleSide,
-            });
-            const floorMat = new THREE.MeshStandardMaterial({
-                map: textures.zemla || undefined,
-                roughness: 0.8,
-                metalness: 0.0,
-                side: THREE.DoubleSide,
-            });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9, metalness: 0.0, side: THREE.DoubleSide });
+            const floorMat = new THREE.MeshStandardMaterial({ map: textures.zemla || undefined, roughness: 0.8, metalness: 0.0, side: THREE.DoubleSide });
 
             const group = new THREE.Group();
 
             // Задняя стена
-            const backWall = new THREE.Mesh(new THREE.BoxGeometry(width, height, wallThick), wallMat);
-            backWall.position.set(0, height/2, -depth/2);
-            backWall.castShadow = true; backWall.receiveShadow = true;
-            group.add(backWall);
+            const back = new THREE.Mesh(new THREE.BoxGeometry(width, height, wallThick), wallMat);
+            back.position.set(0, height/2, -depth/2);
+            back.castShadow = true; back.receiveShadow = true;
+            group.add(back);
 
-            // Левая стена
-            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallThick, height, depth), wallMat);
-            leftWall.position.set(-width/2, height/2, 0);
-            leftWall.castShadow = true; leftWall.receiveShadow = true;
-            group.add(leftWall);
+            // Левая
+            const left = new THREE.Mesh(new THREE.BoxGeometry(wallThick, height, depth), wallMat);
+            left.position.set(-width/2, height/2, 0);
+            left.castShadow = true; left.receiveShadow = true;
+            group.add(left);
 
-            // Правая стена
-            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(wallThick, height, depth), wallMat);
-            rightWall.position.set(width/2, height/2, 0);
-            rightWall.castShadow = true; rightWall.receiveShadow = true;
-            group.add(rightWall);
+            // Правая
+            const right = new THREE.Mesh(new THREE.BoxGeometry(wallThick, height, depth), wallMat);
+            right.position.set(width/2, height/2, 0);
+            right.castShadow = true; right.receiveShadow = true;
+            group.add(right);
 
-            // Передняя стена (левая часть)
-            const frontLeft = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
-            frontLeft.position.set(-(width/2 + doorWidth/2)/2, height/2, depth/2);
-            frontLeft.castShadow = true; frontLeft.receiveShadow = true;
-            group.add(frontLeft);
+            // Передняя левая
+            const fl = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
+            fl.position.set(-(width/2 + doorWidth/2)/2, height/2, depth/2);
+            fl.castShadow = true; fl.receiveShadow = true;
+            group.add(fl);
 
-            // Передняя стена (правая часть)
-            const frontRight = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
-            frontRight.position.set((width/2 + doorWidth/2)/2, height/2, depth/2);
-            frontRight.castShadow = true; frontRight.receiveShadow = true;
-            group.add(frontRight);
+            // Передняя правая
+            const fr = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
+            fr.position.set((width/2 + doorWidth/2)/2, height/2, depth/2);
+            fr.castShadow = true; fr.receiveShadow = true;
+            group.add(fr);
 
-            // Верхняя часть над дверью (делаем её ТОНЬШЕ, чтобы не перекрывать проход)
+            // Верхняя над дверью (тонкая)
             const topDoor = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, 0.2, wallThick), wallMat);
             topDoor.position.set(0, height, depth/2);
             topDoor.castShadow = true; topDoor.receiveShadow = true;
@@ -340,18 +323,18 @@
 
             group.position.set(houseX, 0, houseZ);
 
-            // --- КОЛЛИЗИИ ДОМА (смещённые и исправленные) ---
-            // Задняя стена
+            // --- КОЛЛИЗИИ СТЕН (без дверного проёма) ---
+            // Задняя
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX, height/2, houseZ - depth/2), half: new THREE.Vector3(width/2, height/2, wallThick/2) });
-            // Левая стена
+            // Левая
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX - width/2, height/2, houseZ), half: new THREE.Vector3(wallThick/2, height/2, depth/2) });
-            // Правая стена
+            // Правая
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX + width/2, height/2, houseZ), half: new THREE.Vector3(wallThick/2, height/2, depth/2) });
-            // Передняя левая часть
+            // Передняя левая
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX - (width/2 + doorWidth/2)/2, height/2, houseZ + depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
-            // Передняя правая часть
+            // Передняя правая
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX + (width/2 + doorWidth/2)/2, height/2, houseZ + depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
-            // Верхняя часть над дверью (теперь она ТОНЬКАЯ, поэтому коллайдер тоже тонкий)
+            // Верхняя над дверью (тонкая)
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX, height, houseZ + depth/2), half: new THREE.Vector3(doorWidth/2, 0.1, wallThick/2) });
 
             return group;
@@ -506,7 +489,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('SWILL: ДВЕРЬ ОТКРЫТА, НЕБО НА МЕСТЕ!');
+        console.log('SWILL: ВСЁ РАБОТАЕТ! ДВЕРЬ ОТКРЫТА, НЕБО ЕСТЬ.');
     </script>
 </body>
 </html>
