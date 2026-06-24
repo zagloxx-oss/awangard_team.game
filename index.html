@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STALKER — РЕЛЬЕФ И ДОМИК</title>
+    <title>STALKER — ПЛОСКАЯ ЗЕМЛЯ + ХОЛМЫ</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #blocker {
@@ -80,34 +80,20 @@
             border-radius: 7px;
             transition: width 0.05s;
         }
-        .bar-fill.stamina {
-            background: #ffaa00;
-        }
-        .bar-fill.health {
-            background: #ff3333;
-        }
+        .bar-fill.stamina { background: #ffaa00; }
+        .bar-fill.health { background: #ff3333; }
     </style>
 </head>
 <body>
     <div id="blocker"><span>КЛИКНИ, ЧТОБЫ ВОЙТИ В ЗОНУ</span></div>
     <div id="info">WASD — ходьба | Shift — бег | Пробел — прыжок</div>
     <div id="hud">
-        <div class="stat">
-            <span class="stat-label">Здоровье</span>
-            <div class="bar-bg"><div class="bar-fill health" id="healthBar" style="width:100%"></div></div>
-        </div>
-        <div class="stat">
-            <span class="stat-label">Выносливость</span>
-            <div class="bar-bg"><div class="bar-fill stamina" id="staminaBar" style="width:100%"></div></div>
-        </div>
+        <div class="stat"><span class="stat-label">Здоровье</span><div class="bar-bg"><div class="bar-fill health" id="healthBar" style="width:100%"></div></div></div>
+        <div class="stat"><span class="stat-label">Выносливость</span><div class="bar-bg"><div class="bar-fill stamina" id="staminaBar" style="width:100%"></div></div></div>
     </div>
 
     <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-        }
-    }
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
     </script>
 
     <script type="module">
@@ -116,7 +102,7 @@
         // --- ИНИЦИАЛИЗАЦИЯ ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a2b3c);
-        scene.fog = new THREE.Fog(0x1a2b3c, 40, 80); // туман для атмосферы
+        scene.fog = new THREE.Fog(0x1a2b3c, 40, 80);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 1.80, 5);
@@ -169,7 +155,6 @@
         // --- СВЕТ ---
         const ambient = new THREE.AmbientLight(0x404060, 0.5);
         scene.add(ambient);
-
         const sun = new THREE.DirectionalLight(0xffeedd, 1.2);
         sun.position.set(20, 30, 10);
         sun.castShadow = true;
@@ -182,7 +167,6 @@
         sun.shadow.camera.top = 40;
         sun.shadow.camera.bottom = -40;
         scene.add(sun);
-
         const fill = new THREE.DirectionalLight(0x8888ff, 0.3);
         fill.position.set(-20, 10, -20);
         scene.add(fill);
@@ -190,7 +174,7 @@
         // --- ТЕКСТУРЫ ---
         const loader = new THREE.TextureLoader();
         const textures = {};
-        function loadTex(name) {
+        async function loadTex(name) {
             return new Promise((resolve) => {
                 loader.load(`textures/${name}`, (tex) => { tex.needsUpdate = true; resolve(tex); },
                     undefined, () => resolve(null));
@@ -210,64 +194,33 @@
         }));
         console.log('SWILL: текстуры загружены');
 
-        // --- РЕЛЬЕФ (холмы и низины) ---
-        const groundSize = 80;
-        const segments = 80;
-        const geometry = new THREE.BufferGeometry();
-        const vertices = [];
-        const indices = [];
-        const normals = [];
-        const uvs = [];
-
-        const half = groundSize / 2;
-
-        for (let i = 0; i <= segments; i++) {
-            const x = -half + (i / segments) * groundSize;
-            for (let j = 0; j <= segments; j++) {
-                const z = -half + (j / segments) * groundSize;
-                // Высота: холмы с помощью синусов
-                let y = 0;
-                y += Math.sin(x * 0.15) * Math.cos(z * 0.12) * 2.0;
-                y += Math.sin(x * 0.3 + z * 0.2) * 0.8;
-                y += Math.cos(z * 0.25) * 1.0;
-                // Добавим низины
-                y -= Math.pow(Math.sin(x * 0.1) * Math.cos(z * 0.1), 2) * 1.5;
-                // Ограничим, чтобы не было слишком глубоко
-                if (y < -1.5) y = -1.5;
-                if (y > 3.0) y = 3.0;
-                vertices.push(x, y, z);
-                uvs.push(i / segments, j / segments);
-            }
-        }
-
-        for (let i = 0; i < segments; i++) {
-            for (let j = 0; j < segments; j++) {
-                const a = i * (segments + 1) + j;
-                const b = i * (segments + 1) + j + 1;
-                const c = (i + 1) * (segments + 1) + j;
-                const d = (i + 1) * (segments + 1) + j + 1;
-                indices.push(a, b, c);
-                indices.push(b, d, c);
-            }
-        }
-
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        geometry.setIndex(indices);
-        geometry.computeVertexNormals();
-
+        // --- ПЛОСКАЯ ЗЕМЛЯ (основная) ---
         const groundMat = new THREE.MeshStandardMaterial({
             map: textures.zemla || undefined,
             roughness: 0.8,
             metalness: 0.0,
             side: THREE.DoubleSide,
         });
-        const ground = new THREE.Mesh(geometry, groundMat);
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), groundMat);
+        ground.rotation.x = -Math.PI/2;
+        ground.position.y = 0;
         ground.receiveShadow = true;
-        ground.castShadow = false;
         scene.add(ground);
 
-        // Добавим слой травы на некоторых участках (опционально, просто для красоты)
-        // Но мы упростим, используем ту же текстуру.
+        // --- ТРАВА (второй слой, пятно) ---
+        if (textures.trawa) {
+            const grassMat = new THREE.MeshStandardMaterial({
+                map: textures.trawa,
+                roughness: 0.9,
+                metalness: 0.0,
+                side: THREE.DoubleSide,
+            });
+            const grass = new THREE.Mesh(new THREE.PlaneGeometry(25, 25), grassMat);
+            grass.rotation.x = -Math.PI/2;
+            grass.position.set(0, 0.01, 0);
+            grass.receiveShadow = true;
+            scene.add(grass);
+        }
 
         // --- НЕБО ---
         if (textures.nebo) {
@@ -279,16 +232,12 @@
             scene.add(sky);
         }
 
-        // --- ДЕРЕВЬЯ (крест-накрест) с учётом рельефа (ставим на y=0 для простоты) ---
+        // --- ДЕРЕВЬЯ (крест-накрест) ---
         function createCrossTree(texture, x, z, height = 5, width = 2.5) {
             if (!texture) return null;
             const mat = new THREE.MeshStandardMaterial({
-                map: texture,
-                transparent: true,
-                side: THREE.DoubleSide,
-                roughness: 0.8,
-                metalness: 0.0,
-                depthWrite: true
+                map: texture, transparent: true, side: THREE.DoubleSide,
+                roughness: 0.8, metalness: 0.0, depthWrite: true
             });
             const p1 = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
             p1.position.set(0, height/2, 0);
@@ -298,10 +247,8 @@
             p2.rotation.y = Math.PI/2;
             p2.castShadow = true;
             const group = new THREE.Group();
-            // Для простоты ставим деревья на y=0, игнорируя рельеф
             group.position.set(x, 0, z);
-            group.add(p1);
-            group.add(p2);
+            group.add(p1); group.add(p2);
             return group;
         }
 
@@ -314,28 +261,72 @@
             });
         }
 
-        // --- КОЛЛИЗИИ (стена, деревья, домик) ---
-        const colliders = [];
-
-        // Стена (AABB)
-        const wallPos = new THREE.Vector3(-5, 2, -8);
-        const wallHalf = new THREE.Vector3(4, 2, 0.25);
-        colliders.push({
-            type: 'box',
-            pos: wallPos,
-            half: wallHalf
-        });
-
-        // Деревья (сферы) — уменьшенный радиус
-        treeGroups.forEach((group) => {
-            const pos = new THREE.Vector3();
-            group.getWorldPosition(pos);
-            const center = new THREE.Vector3(pos.x, 2.5, pos.z);
+        // --- ХОЛМЫ И НИЗИНЫ (как отдельные меши с коллизиями) ---
+        // Функция создания холма (полусфера или сглаженный конус)
+        function createHill(posX, posZ, radius, height, color = 0x4a5c3a) {
+            const geo = new THREE.SphereGeometry(radius, 32, 16);
+            // Сплюснем, чтобы получился холм
+            const mat = new THREE.MeshStandardMaterial({
+                color: color,
+                roughness: 0.9,
+                metalness: 0.0,
+                flatShading: false,
+            });
+            const hill = new THREE.Mesh(geo, mat);
+            hill.scale.y = height / radius; // делаем эллипсоид
+            hill.position.set(posX, 0, posZ);
+            hill.receiveShadow = true;
+            hill.castShadow = true;
+            scene.add(hill);
+            // Добавляем коллизию как сферу (но с центром на высоте height/2)
+            const center = new THREE.Vector3(posX, height/2, posZ);
             colliders.push({
                 type: 'sphere',
                 center: center,
+                radius: radius * 1.2 // чуть больше, чтобы не проваливаться
+            });
+            return hill;
+        }
+
+        // Список холмов
+        const hillData = [
+            { x: -15, z: -10, r: 4, h: 1.5 },
+            { x: 10, z: 12, r: 5, h: 2.0 },
+            { x: -8, z: 15, r: 3, h: 1.2 },
+            { x: 20, z: -5, r: 4.5, h: 1.8 },
+            { x: -20, z: 8, r: 6, h: 2.5 },
+        ];
+
+        // --- КОЛЛИЗИИ (стена, деревья, холмы, домик) ---
+        const colliders = [];
+
+        // Стена
+        const wallPos = new THREE.Vector3(-5, 2, -8);
+        const wallHalf = new THREE.Vector3(4, 2, 0.25);
+        colliders.push({ type: 'box', pos: wallPos, half: wallHalf });
+
+        // Деревья
+        treeGroups.forEach((group) => {
+            const pos = new THREE.Vector3();
+            group.getWorldPosition(pos);
+            colliders.push({
+                type: 'sphere',
+                center: new THREE.Vector3(pos.x, 2.5, pos.z),
                 radius: 1.0
             });
+        });
+
+        // Холмы (сферы) — добавляем их в colliders
+        hillData.forEach((h) => {
+            colliders.push({
+                type: 'sphere',
+                center: new THREE.Vector3(h.x, h.h/2, h.z),
+                radius: h.r * 1.2
+            });
+        });
+        // Создаём сами холмы после добавления коллизий (чтобы они были в сцене)
+        hillData.forEach((h) => {
+            createHill(h.x, h.z, h.r, h.h, 0x6b8e5a);
         });
 
         // --- ДОМИК (коробка с входом) ---
@@ -343,28 +334,25 @@
             const group = new THREE.Group();
             const houseX = 10;
             const houseZ = -5;
-            const width = 4;   // по X
-            const depth = 3.5; // по Z
-            const height = 3;  // по Y
+            const width = 4;
+            const depth = 3.5;
+            const height = 3;
             const wallThick = 0.15;
             const doorWidth = 1.0;
             const doorHeight = 2.0;
 
-            // Материал стен
             const wallMat = new THREE.MeshStandardMaterial({
                 map: textures.stena || undefined,
                 roughness: 0.7,
                 metalness: 0.1,
                 side: THREE.DoubleSide,
             });
-            // Материал для крыши (используем ту же текстуру или просто цвет)
             const roofMat = new THREE.MeshStandardMaterial({
                 color: 0x8b5a2b,
                 roughness: 0.9,
                 metalness: 0.0,
                 side: THREE.DoubleSide,
             });
-            // Пол (внутренний)
             const floorMat = new THREE.MeshStandardMaterial({
                 map: textures.zemla || undefined,
                 roughness: 0.8,
@@ -372,102 +360,61 @@
                 side: THREE.DoubleSide,
             });
 
-            // ---- Стены ----
-            // Задняя стена (z = -depth/2)
+            // Задняя стена
             const backWall = new THREE.Mesh(new THREE.BoxGeometry(width, height, wallThick), wallMat);
             backWall.position.set(0, height/2, -depth/2);
-            backWall.castShadow = true;
-            backWall.receiveShadow = true;
+            backWall.castShadow = true; backWall.receiveShadow = true;
             group.add(backWall);
 
-            // Левая стена (x = -width/2)
+            // Левая стена
             const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallThick, height, depth), wallMat);
             leftWall.position.set(-width/2, height/2, 0);
-            leftWall.castShadow = true;
-            leftWall.receiveShadow = true;
+            leftWall.castShadow = true; leftWall.receiveShadow = true;
             group.add(leftWall);
 
-            // Правая стена (x = width/2)
+            // Правая стена
             const rightWall = new THREE.Mesh(new THREE.BoxGeometry(wallThick, height, depth), wallMat);
             rightWall.position.set(width/2, height/2, 0);
-            rightWall.castShadow = true;
-            rightWall.receiveShadow = true;
+            rightWall.castShadow = true; rightWall.receiveShadow = true;
             group.add(rightWall);
 
-            // Передняя стена — состоит из двух частей по бокам от двери
-            // Левая часть передней стены (от -width/2 до -doorWidth/2)
+            // Передняя стена (левая часть)
             const frontLeft = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
             frontLeft.position.set(-(width/2 + doorWidth/2)/2, height/2, depth/2);
-            frontLeft.castShadow = true;
-            frontLeft.receiveShadow = true;
+            frontLeft.castShadow = true; frontLeft.receiveShadow = true;
             group.add(frontLeft);
 
-            // Правая часть передней стены (от doorWidth/2 до width/2)
+            // Передняя стена (правая часть)
             const frontRight = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
             frontRight.position.set((width/2 + doorWidth/2)/2, height/2, depth/2);
-            frontRight.castShadow = true;
-            frontRight.receiveShadow = true;
+            frontRight.castShadow = true; frontRight.receiveShadow = true;
             group.add(frontRight);
 
-            // Верхняя часть над дверью (от doorWidth/2 до -doorWidth/2) по X, высота от doorHeight до height
+            // Верхняя часть над дверью
             const topDoor = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, height - doorHeight, wallThick), wallMat);
             topDoor.position.set(0, (height + doorHeight)/2, depth/2);
-            topDoor.castShadow = true;
-            topDoor.receiveShadow = true;
+            topDoor.castShadow = true; topDoor.receiveShadow = true;
             group.add(topDoor);
 
-            // ---- Пол ----
+            // Пол
             const floor = new THREE.Mesh(new THREE.BoxGeometry(width - wallThick*2, 0.1, depth - wallThick*2), floorMat);
             floor.position.set(0, 0.05, 0);
             floor.receiveShadow = true;
-            floor.castShadow = false;
             group.add(floor);
 
-            // ---- Крыша (плоская) ----
+            // Крыша
             const roof = new THREE.Mesh(new THREE.BoxGeometry(width + 0.5, 0.1, depth + 0.5), roofMat);
             roof.position.set(0, height + 0.05, 0);
-            roof.castShadow = true;
-            roof.receiveShadow = true;
+            roof.castShadow = true; roof.receiveShadow = true;
             group.add(roof);
 
-            // ---- Коллизии домика (стены) ----
-            // Для простоты добавим все стены как AABB коллайдеры
-            // Задняя стена
-            colliders.push({
-                type: 'box',
-                pos: new THREE.Vector3(0, height/2, -depth/2),
-                half: new THREE.Vector3(width/2, height/2, wallThick/2)
-            });
-            // Левая стена
-            colliders.push({
-                type: 'box',
-                pos: new THREE.Vector3(-width/2, height/2, 0),
-                half: new THREE.Vector3(wallThick/2, height/2, depth/2)
-            });
-            // Правая стена
-            colliders.push({
-                type: 'box',
-                pos: new THREE.Vector3(width/2, height/2, 0),
-                half: new THREE.Vector3(wallThick/2, height/2, depth/2)
-            });
-            // Передняя левая часть
-            colliders.push({
-                type: 'box',
-                pos: new THREE.Vector3(-(width/2 + doorWidth/2)/2, height/2, depth/2),
-                half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2)
-            });
-            // Передняя правая часть
-            colliders.push({
-                type: 'box',
-                pos: new THREE.Vector3((width/2 + doorWidth/2)/2, height/2, depth/2),
-                half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2)
-            });
-            // Верхняя часть над дверью
-            colliders.push({
-                type: 'box',
-                pos: new THREE.Vector3(0, (height + doorHeight)/2, depth/2),
-                half: new THREE.Vector3(doorWidth/2, (height - doorHeight)/2, wallThick/2)
-            });
+            // Коллизии домика (стены)
+            colliders.push({ type: 'box', pos: new THREE.Vector3(0, height/2, -depth/2), half: new THREE.Vector3(width/2, height/2, wallThick/2) });
+            colliders.push({ type: 'box', pos: new THREE.Vector3(-width/2, height/2, 0), half: new THREE.Vector3(wallThick/2, height/2, depth/2) });
+            colliders.push({ type: 'box', pos: new THREE.Vector3(width/2, height/2, 0), half: new THREE.Vector3(wallThick/2, height/2, depth/2) });
+            colliders.push({ type: 'box', pos: new THREE.Vector3(-(width/2 + doorWidth/2)/2, height/2, depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
+            colliders.push({ type: 'box', pos: new THREE.Vector3((width/2 + doorWidth/2)/2, height/2, depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
+            colliders.push({ type: 'box', pos: new THREE.Vector3(0, (height + doorHeight)/2, depth/2), half: new THREE.Vector3(doorWidth/2, (height - doorHeight)/2, wallThick/2) });
 
             group.position.set(houseX, 0, houseZ);
             return group;
@@ -481,23 +428,19 @@
         const gravity = -9.8;
         const jumpSpeed = 4.5;
         const jumpStaminaCost = 15;
-        const groundY = 1.80; // базовая высота глаз
+        const groundY = 1.80;
 
-        // --- СТАМИНА ---
         let stamina = 100;
         const maxStamina = 100;
         const staminaDrain = 25;
         const staminaRegen = 12;
 
-        // --- HUD ---
         const healthBar = document.getElementById('healthBar');
         const staminaBar = document.getElementById('staminaBar');
 
-        // --- ПОКАЧИВАНИЕ ---
         let bobPhase = 0;
         let isMoving = false;
 
-        // --- КОЛЛИЗИИ (функция) ---
         const playerRadius = 0.5;
         const playerHeight = 1.8;
 
@@ -540,7 +483,6 @@
             return pos;
         }
 
-        // --- ОСНОВНОЙ ЦИКЛ ---
         let lastTime = performance.now();
 
         function animate(time) {
@@ -549,12 +491,10 @@
             lastTime = time;
 
             if (document.pointerLockElement === renderer.domElement) {
-                // --- СКОРОСТЬ ---
                 const baseSpeed = 4.0;
                 const runMultiplier = (keys.shift && stamina > 0) ? 2.0 : 1.0;
                 const currentSpeed = baseSpeed * runMultiplier;
 
-                // --- НАПРАВЛЕНИЕ ---
                 const dir = new THREE.Vector3(0, 0, 0);
                 if (keys.w) dir.z -= 1;
                 if (keys.s) dir.z += 1;
@@ -563,11 +503,9 @@
                 isMoving = dir.lengthSq() > 0;
                 if (isMoving) dir.normalize();
 
-                // --- ПОВОРОТ ---
                 const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
                 camera.quaternion.setFromEuler(euler);
 
-                // --- ДВИЖЕНИЕ ---
                 let newPos = camera.position.clone();
                 if (isMoving) {
                     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
@@ -581,16 +519,13 @@
                     newPos.z += moveDelta.z;
                 }
 
-                // --- КОЛЛИЗИИ ---
                 newPos = resolveCollisions(newPos);
 
-                // --- ПРЫЖОК ---
                 if (keys.space && camera.position.y <= groundY + 0.01 && stamina >= jumpStaminaCost) {
                     velocityY = jumpSpeed;
                     stamina -= jumpStaminaCost;
                 }
 
-                // --- ГРАВИТАЦИЯ ---
                 velocityY += gravity * delta;
                 newPos.y += velocityY * delta;
                 if (newPos.y < groundY) {
@@ -600,7 +535,6 @@
 
                 camera.position.copy(newPos);
 
-                // --- СТАМИНА ---
                 if (keys.shift && isMoving && camera.position.y <= groundY + 0.01) {
                     stamina = Math.max(0, stamina - staminaDrain * delta);
                 } else {
@@ -608,7 +542,6 @@
                 }
                 staminaBar.style.width = (stamina / maxStamina * 100) + '%';
 
-                // --- ПОКАЧИВАНИЕ ---
                 if (isMoving && camera.position.y <= groundY + 0.01) {
                     const freq = runMultiplier > 1 ? 14 : 10;
                     const amp = runMultiplier > 1 ? 0.06 : 0.03;
@@ -620,7 +553,6 @@
                     bobPhase *= 0.9;
                 }
 
-                // --- ГРАНИЦЫ КАРТЫ ---
                 const limit = 35;
                 if (Math.abs(camera.position.x) > limit) camera.position.x = Math.sign(camera.position.x) * limit;
                 if (Math.abs(camera.position.z) > limit) camera.position.z = Math.sign(camera.position.z) * limit;
@@ -637,7 +569,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('SWILL: Карта с холмами, низинами и домиком готова!');
+        console.log('SWILL: Всё починил! Земля плоская, травка есть, холмы с коллизиями, дом на земле.');
     </script>
 </body>
 </html>
