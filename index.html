@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>STALKER — ХИТБОКСЫ И СТАМИНА</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STALKER — РЕЛЬЕФ И ДОМИК</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #blocker {
@@ -89,7 +90,7 @@
 </head>
 <body>
     <div id="blocker"><span>КЛИКНИ, ЧТОБЫ ВОЙТИ В ЗОНУ</span></div>
-    <div id="info">WASD — ходьба | Shift — бег | Пробел — прыжок (тратит стамину)</div>
+    <div id="info">WASD — ходьба | Shift — бег | Пробел — прыжок</div>
     <div id="hud">
         <div class="stat">
             <span class="stat-label">Здоровье</span>
@@ -115,6 +116,7 @@
         // --- ИНИЦИАЛИЗАЦИЯ ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a2b3c);
+        scene.fog = new THREE.Fog(0x1a2b3c, 40, 80); // туман для атмосферы
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 1.80, 5);
@@ -165,20 +167,22 @@
         });
 
         // --- СВЕТ ---
-        const ambient = new THREE.AmbientLight(0x404060, 0.6);
+        const ambient = new THREE.AmbientLight(0x404060, 0.5);
         scene.add(ambient);
+
         const sun = new THREE.DirectionalLight(0xffeedd, 1.2);
         sun.position.set(20, 30, 10);
         sun.castShadow = true;
-        sun.shadow.mapSize.width = 1024;
-        sun.shadow.mapSize.height = 1024;
+        sun.shadow.mapSize.width = 2048;
+        sun.shadow.mapSize.height = 2048;
         sun.shadow.camera.near = 0.5;
-        sun.shadow.camera.far = 60;
-        sun.shadow.camera.left = -30;
-        sun.shadow.camera.right = 30;
-        sun.shadow.camera.top = 30;
-        sun.shadow.camera.bottom = -30;
+        sun.shadow.camera.far = 80;
+        sun.shadow.camera.left = -40;
+        sun.shadow.camera.right = 40;
+        sun.shadow.camera.top = 40;
+        sun.shadow.camera.bottom = -40;
         scene.add(sun);
+
         const fill = new THREE.DirectionalLight(0x8888ff, 0.3);
         fill.position.set(-20, 10, -20);
         scene.add(fill);
@@ -206,34 +210,85 @@
         }));
         console.log('SWILL: текстуры загружены');
 
-        // --- МИР ---
-        if (textures.zemla) {
-            const g = new THREE.Mesh(new THREE.PlaneGeometry(60, 60),
-                new THREE.MeshStandardMaterial({ map: textures.zemla, roughness: 0.8 }));
-            g.rotation.x = -Math.PI/2; g.position.y = 0; g.receiveShadow = true; scene.add(g);
-        }
-        if (textures.trawa) {
-            const g = new THREE.Mesh(new THREE.PlaneGeometry(20, 20),
-                new THREE.MeshStandardMaterial({ map: textures.trawa, roughness: 0.9 }));
-            g.rotation.x = -Math.PI/2; g.position.set(0, 0.01, 0); g.receiveShadow = true; scene.add(g);
-        }
-        if (textures.stena) {
-            const wall = new THREE.Mesh(new THREE.BoxGeometry(8, 4, 0.5),
-                new THREE.MeshStandardMaterial({ map: textures.stena, roughness: 0.7 }));
-            wall.position.set(-5, 2, -8); wall.castShadow = true; wall.receiveShadow = true; scene.add(wall);
-        }
-        if (textures.nebo) {
-            const sky = new THREE.Mesh(new THREE.SphereGeometry(200, 32, 32),
-                new THREE.MeshBasicMaterial({ map: textures.nebo, side: THREE.BackSide }));
-            sky.position.y = 0; scene.add(sky);
+        // --- РЕЛЬЕФ (холмы и низины) ---
+        const groundSize = 80;
+        const segments = 80;
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+        const indices = [];
+        const normals = [];
+        const uvs = [];
+
+        const half = groundSize / 2;
+
+        for (let i = 0; i <= segments; i++) {
+            const x = -half + (i / segments) * groundSize;
+            for (let j = 0; j <= segments; j++) {
+                const z = -half + (j / segments) * groundSize;
+                // Высота: холмы с помощью синусов
+                let y = 0;
+                y += Math.sin(x * 0.15) * Math.cos(z * 0.12) * 2.0;
+                y += Math.sin(x * 0.3 + z * 0.2) * 0.8;
+                y += Math.cos(z * 0.25) * 1.0;
+                // Добавим низины
+                y -= Math.pow(Math.sin(x * 0.1) * Math.cos(z * 0.1), 2) * 1.5;
+                // Ограничим, чтобы не было слишком глубоко
+                if (y < -1.5) y = -1.5;
+                if (y > 3.0) y = 3.0;
+                vertices.push(x, y, z);
+                uvs.push(i / segments, j / segments);
+            }
         }
 
-        // --- ДЕРЕВЬЯ (крест-накрест) ---
+        for (let i = 0; i < segments; i++) {
+            for (let j = 0; j < segments; j++) {
+                const a = i * (segments + 1) + j;
+                const b = i * (segments + 1) + j + 1;
+                const c = (i + 1) * (segments + 1) + j;
+                const d = (i + 1) * (segments + 1) + j + 1;
+                indices.push(a, b, c);
+                indices.push(b, d, c);
+            }
+        }
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+
+        const groundMat = new THREE.MeshStandardMaterial({
+            map: textures.zemla || undefined,
+            roughness: 0.8,
+            metalness: 0.0,
+            side: THREE.DoubleSide,
+        });
+        const ground = new THREE.Mesh(geometry, groundMat);
+        ground.receiveShadow = true;
+        ground.castShadow = false;
+        scene.add(ground);
+
+        // Добавим слой травы на некоторых участках (опционально, просто для красоты)
+        // Но мы упростим, используем ту же текстуру.
+
+        // --- НЕБО ---
+        if (textures.nebo) {
+            const sky = new THREE.Mesh(
+                new THREE.SphereGeometry(200, 32, 32),
+                new THREE.MeshBasicMaterial({ map: textures.nebo, side: THREE.BackSide })
+            );
+            sky.position.y = 0;
+            scene.add(sky);
+        }
+
+        // --- ДЕРЕВЬЯ (крест-накрест) с учётом рельефа (ставим на y=0 для простоты) ---
         function createCrossTree(texture, x, z, height = 5, width = 2.5) {
             if (!texture) return null;
             const mat = new THREE.MeshStandardMaterial({
-                map: texture, transparent: true, side: THREE.DoubleSide,
-                roughness: 0.8, metalness: 0.0, depthWrite: true
+                map: texture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                roughness: 0.8,
+                metalness: 0.0,
+                depthWrite: true
             });
             const p1 = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
             p1.position.set(0, height/2, 0);
@@ -243,13 +298,14 @@
             p2.rotation.y = Math.PI/2;
             p2.castShadow = true;
             const group = new THREE.Group();
+            // Для простоты ставим деревья на y=0, игнорируя рельеф
             group.position.set(x, 0, z);
             group.add(p1);
             group.add(p2);
             return group;
         }
 
-        const treePositions = [[-3,-2],[4,-3],[2,5],[-4,4],[6,2]];
+        const treePositions = [[-3,-2],[4,-3],[2,5],[-4,4],[6,2], [12,-8], [-10,6], [-7,-10]];
         const treeGroups = [];
         if (textures.bereza) {
             treePositions.forEach(([x,z]) => {
@@ -258,7 +314,7 @@
             });
         }
 
-        // --- КОЛЛИЗИИ ---
+        // --- КОЛЛИЗИИ (стена, деревья, домик) ---
         const colliders = [];
 
         // Стена (AABB)
@@ -270,7 +326,7 @@
             half: wallHalf
         });
 
-        // Деревья (сферы) — УМЕНЬШЕННЫЙ РАДИУС
+        // Деревья (сферы) — уменьшенный радиус
         treeGroups.forEach((group) => {
             const pos = new THREE.Vector3();
             group.getWorldPosition(pos);
@@ -278,13 +334,172 @@
             colliders.push({
                 type: 'sphere',
                 center: center,
-                radius: 1.0   // <-- теперь 1.0 вместо 1.5
+                radius: 1.0
             });
         });
 
+        // --- ДОМИК (коробка с входом) ---
+        function createHouse() {
+            const group = new THREE.Group();
+            const houseX = 10;
+            const houseZ = -5;
+            const width = 4;   // по X
+            const depth = 3.5; // по Z
+            const height = 3;  // по Y
+            const wallThick = 0.15;
+            const doorWidth = 1.0;
+            const doorHeight = 2.0;
+
+            // Материал стен
+            const wallMat = new THREE.MeshStandardMaterial({
+                map: textures.stena || undefined,
+                roughness: 0.7,
+                metalness: 0.1,
+                side: THREE.DoubleSide,
+            });
+            // Материал для крыши (используем ту же текстуру или просто цвет)
+            const roofMat = new THREE.MeshStandardMaterial({
+                color: 0x8b5a2b,
+                roughness: 0.9,
+                metalness: 0.0,
+                side: THREE.DoubleSide,
+            });
+            // Пол (внутренний)
+            const floorMat = new THREE.MeshStandardMaterial({
+                map: textures.zemla || undefined,
+                roughness: 0.8,
+                metalness: 0.0,
+                side: THREE.DoubleSide,
+            });
+
+            // ---- Стены ----
+            // Задняя стена (z = -depth/2)
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(width, height, wallThick), wallMat);
+            backWall.position.set(0, height/2, -depth/2);
+            backWall.castShadow = true;
+            backWall.receiveShadow = true;
+            group.add(backWall);
+
+            // Левая стена (x = -width/2)
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallThick, height, depth), wallMat);
+            leftWall.position.set(-width/2, height/2, 0);
+            leftWall.castShadow = true;
+            leftWall.receiveShadow = true;
+            group.add(leftWall);
+
+            // Правая стена (x = width/2)
+            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(wallThick, height, depth), wallMat);
+            rightWall.position.set(width/2, height/2, 0);
+            rightWall.castShadow = true;
+            rightWall.receiveShadow = true;
+            group.add(rightWall);
+
+            // Передняя стена — состоит из двух частей по бокам от двери
+            // Левая часть передней стены (от -width/2 до -doorWidth/2)
+            const frontLeft = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
+            frontLeft.position.set(-(width/2 + doorWidth/2)/2, height/2, depth/2);
+            frontLeft.castShadow = true;
+            frontLeft.receiveShadow = true;
+            group.add(frontLeft);
+
+            // Правая часть передней стены (от doorWidth/2 до width/2)
+            const frontRight = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
+            frontRight.position.set((width/2 + doorWidth/2)/2, height/2, depth/2);
+            frontRight.castShadow = true;
+            frontRight.receiveShadow = true;
+            group.add(frontRight);
+
+            // Верхняя часть над дверью (от doorWidth/2 до -doorWidth/2) по X, высота от doorHeight до height
+            const topDoor = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, height - doorHeight, wallThick), wallMat);
+            topDoor.position.set(0, (height + doorHeight)/2, depth/2);
+            topDoor.castShadow = true;
+            topDoor.receiveShadow = true;
+            group.add(topDoor);
+
+            // ---- Пол ----
+            const floor = new THREE.Mesh(new THREE.BoxGeometry(width - wallThick*2, 0.1, depth - wallThick*2), floorMat);
+            floor.position.set(0, 0.05, 0);
+            floor.receiveShadow = true;
+            floor.castShadow = false;
+            group.add(floor);
+
+            // ---- Крыша (плоская) ----
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(width + 0.5, 0.1, depth + 0.5), roofMat);
+            roof.position.set(0, height + 0.05, 0);
+            roof.castShadow = true;
+            roof.receiveShadow = true;
+            group.add(roof);
+
+            // ---- Коллизии домика (стены) ----
+            // Для простоты добавим все стены как AABB коллайдеры
+            // Задняя стена
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3(0, height/2, -depth/2),
+                half: new THREE.Vector3(width/2, height/2, wallThick/2)
+            });
+            // Левая стена
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3(-width/2, height/2, 0),
+                half: new THREE.Vector3(wallThick/2, height/2, depth/2)
+            });
+            // Правая стена
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3(width/2, height/2, 0),
+                half: new THREE.Vector3(wallThick/2, height/2, depth/2)
+            });
+            // Передняя левая часть
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3(-(width/2 + doorWidth/2)/2, height/2, depth/2),
+                half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2)
+            });
+            // Передняя правая часть
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3((width/2 + doorWidth/2)/2, height/2, depth/2),
+                half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2)
+            });
+            // Верхняя часть над дверью
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3(0, (height + doorHeight)/2, depth/2),
+                half: new THREE.Vector3(doorWidth/2, (height - doorHeight)/2, wallThick/2)
+            });
+
+            group.position.set(houseX, 0, houseZ);
+            return group;
+        }
+
+        const house = createHouse();
+        scene.add(house);
+
+        // --- ФИЗИКА ---
+        let velocityY = 0;
+        const gravity = -9.8;
+        const jumpSpeed = 4.5;
+        const jumpStaminaCost = 15;
+        const groundY = 1.80; // базовая высота глаз
+
+        // --- СТАМИНА ---
+        let stamina = 100;
+        const maxStamina = 100;
+        const staminaDrain = 25;
+        const staminaRegen = 12;
+
+        // --- HUD ---
+        const healthBar = document.getElementById('healthBar');
+        const staminaBar = document.getElementById('staminaBar');
+
+        // --- ПОКАЧИВАНИЕ ---
+        let bobPhase = 0;
+        let isMoving = false;
+
+        // --- КОЛЛИЗИИ (функция) ---
         const playerRadius = 0.5;
         const playerHeight = 1.8;
-        const groundY = 1.80;
 
         function resolveCollisions(pos) {
             for (const col of colliders) {
@@ -324,26 +539,6 @@
             }
             return pos;
         }
-
-        // --- ФИЗИКА ---
-        let velocityY = 0;
-        const gravity = -9.8;
-        const jumpSpeed = 4.5;
-        const jumpStaminaCost = 15; // трата стамины за прыжок
-
-        // --- СТАМИНА ---
-        let stamina = 100;
-        const maxStamina = 100;
-        const staminaDrain = 25;
-        const staminaRegen = 12;
-
-        // --- HUD ---
-        const healthBar = document.getElementById('healthBar');
-        const staminaBar = document.getElementById('staminaBar');
-
-        // --- ПОКАЧИВАНИЕ ---
-        let bobPhase = 0;
-        let isMoving = false;
 
         // --- ОСНОВНОЙ ЦИКЛ ---
         let lastTime = performance.now();
@@ -389,10 +584,10 @@
                 // --- КОЛЛИЗИИ ---
                 newPos = resolveCollisions(newPos);
 
-                // --- ПРЫЖОК (с тратой стамины) ---
+                // --- ПРЫЖОК ---
                 if (keys.space && camera.position.y <= groundY + 0.01 && stamina >= jumpStaminaCost) {
                     velocityY = jumpSpeed;
-                    stamina -= jumpStaminaCost; // тратим стамину
+                    stamina -= jumpStaminaCost;
                 }
 
                 // --- ГРАВИТАЦИЯ ---
@@ -405,7 +600,7 @@
 
                 camera.position.copy(newPos);
 
-                // --- СТАМИНА (восстановление и трата на бег) ---
+                // --- СТАМИНА ---
                 if (keys.shift && isMoving && camera.position.y <= groundY + 0.01) {
                     stamina = Math.max(0, stamina - staminaDrain * delta);
                 } else {
@@ -426,7 +621,7 @@
                 }
 
                 // --- ГРАНИЦЫ КАРТЫ ---
-                const limit = 28;
+                const limit = 35;
                 if (Math.abs(camera.position.x) > limit) camera.position.x = Math.sign(camera.position.x) * limit;
                 if (Math.abs(camera.position.z) > limit) camera.position.z = Math.sign(camera.position.z) * limit;
             }
@@ -442,7 +637,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('SWILL: Хитбоксы деревьев уменьшены до 1.0, прыжок тратит 15 стамины.');
+        console.log('SWILL: Карта с холмами, низинами и домиком готова!');
     </script>
 </body>
 </html>
