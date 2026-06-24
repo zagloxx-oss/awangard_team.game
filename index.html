@@ -2,8 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STALKER — КОЛЛИЗИИ, СТАМИНА, ЗВУКИ</title>
+    <title>STALKER — ИСПРАВЛЕННОЕ ДВИЖЕНИЕ</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #blocker {
@@ -41,7 +40,6 @@
             pointer-events: none;
             user-select: none;
         }
-        /* HUD */
         #hud {
             position: fixed;
             top: 20px;
@@ -166,7 +164,7 @@
             pitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, pitch));
         });
 
-        // --- СВЕТ (без изменений) ---
+        // --- СВЕТ ---
         const ambient = new THREE.AmbientLight(0x404060, 0.6);
         scene.add(ambient);
         const sun = new THREE.DirectionalLight(0xffeedd, 1.2);
@@ -208,7 +206,7 @@
         }));
         console.log('SWILL: текстуры загружены');
 
-        // --- МИР (Земля, трава, стена, небо) ---
+        // --- МИР ---
         if (textures.zemla) {
             const g = new THREE.Mesh(new THREE.PlaneGeometry(60, 60),
                 new THREE.MeshStandardMaterial({ map: textures.zemla, roughness: 0.8 }));
@@ -255,211 +253,91 @@
             });
         }
 
-        // --- ОБЪЕКТЫ ДЛЯ КОЛЛИЗИЙ ---
-        // Собираем коллайдеры: стена и деревья
+        // --- КОЛЛИЗИИ ---
         const colliders = [];
-
-        // Стена: AABB (Box3) или сфера? Используем Box3.
+        // Стена (AABB)
         const wallPos = new THREE.Vector3(-5, 2, -8);
-        const wallHalf = new THREE.Vector3(4, 2, 0.25); // половинные размеры
+        const wallHalf = new THREE.Vector3(4, 2, 0.25);
         colliders.push({
             type: 'box',
             pos: wallPos,
-            half: wallHalf,
-            // Для удобства можно хранить mesh, но не обязательно
+            half: wallHalf
         });
-
-        // Деревья: сфера с центром в основании и радиусом ~1.2 (примерно ширина кроны/2)
-        treeGroups.forEach((group, index) => {
+        // Деревья (сферы)
+        treeGroups.forEach((group) => {
             const pos = new THREE.Vector3();
             group.getWorldPosition(pos);
-            // Центр сферы на высоте 2.5 м (половина высоты дерева)
-            const center = new THREE.Vector3(pos.x, 2.5, pos.z);
             colliders.push({
                 type: 'sphere',
-                center: center,
-                radius: 1.5 // подбери под свою текстуру
+                center: new THREE.Vector3(pos.x, 2.5, pos.z),
+                radius: 1.5
             });
         });
 
-        // --- ФИЗИКА (прыжки, гравитация) ---
+        const playerRadius = 0.5;
+        const playerHeight = 1.8;
+        const groundY = 1.80;
+
+        function resolveCollisions(pos) {
+            // Проверяем только X и Z, Y корректируем отдельно
+            for (const col of colliders) {
+                if (col.type === 'box') {
+                    const half = col.half;
+                    const center = col.pos;
+                    const dx = pos.x - center.x;
+                    const dy = (pos.y - playerHeight/2) - center.y;
+                    const dz = pos.z - center.z;
+                    // Для простоты корректируем X и Z как сферу против AABB
+                    const closestX = Math.max(-half.x, Math.min(half.x, dx));
+                    const closestZ = Math.max(-half.z, Math.min(half.z, dz));
+                    const distX = dx - closestX;
+                    const distZ = dz - closestZ;
+                    // Проверяем только горизонтальное расстояние
+                    const distH = Math.sqrt(distX*distX + distZ*distZ);
+                    if (distH < playerRadius && distH > 0.001) {
+                        const overlap = playerRadius - distH;
+                        const norm = new THREE.Vector3(distX, 0, distZ).normalize();
+                        pos.x += norm.x * overlap;
+                        pos.z += norm.z * overlap;
+                    }
+                } else if (col.type === 'sphere') {
+                    const center = col.center;
+                    const dx = pos.x - center.x;
+                    const dz = pos.z - center.z;
+                    const distH = Math.sqrt(dx*dx + dz*dz);
+                    const minDist = col.radius + playerRadius;
+                    if (distH < minDist && distH > 0.001) {
+                        const overlap = minDist - distH;
+                        const norm = new THREE.Vector3(dx, 0, dz).normalize();
+                        pos.x += norm.x * overlap;
+                        pos.z += norm.z * overlap;
+                    } else if (distH < 0.001) {
+                        pos.x += 0.1;
+                        pos.z += 0.1;
+                    }
+                }
+            }
+            return pos;
+        }
+
+        // --- ФИЗИКА ---
         let velocityY = 0;
         const gravity = -9.8;
         const jumpSpeed = 4.5;
-        const groundY = 1.80;
 
         // --- СТАМИНА ---
         let stamina = 100;
         const maxStamina = 100;
-        const staminaDrain = 25; // тратится в секунду при беге
-        const staminaRegen = 12; // восстанавливается в секунду
+        const staminaDrain = 25;
+        const staminaRegen = 12;
 
-        // --- ЗВУКИ ---
-        // Создаём Audio контекст и загружаем файлы из папки /sounds/
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-        // Функция загрузки звука
-        async function loadSound(url) {
-            try {
-                const response = await fetch(url);
-                const buffer = await response.arrayBuffer();
-                const audioBuffer = await audioCtx.decodeAudioData(buffer);
-                return audioBuffer;
-            } catch (e) {
-                console.warn(`SWILL: не удалось загрузить звук ${url}`, e);
-                return null;
-            }
-        }
-
-        // Загружаем звуки (если файлов нет - тишина)
-        const sounds = {
-            birds: null,
-            footstep: null,
-            breath: null
-        };
-
-        // Попытка загрузки (файлы должны лежать в /sounds/)
-        sounds.birds = await loadSound('sounds/birds.mp3').catch(() => null);
-        sounds.footstep = await loadSound('sounds/footstep.mp3').catch(() => null);
-        sounds.breath = await loadSound('sounds/breath.mp3').catch(() => null);
-
-        // Для шагов используем короткие звуки, будем проигрывать при каждом шаге (по фазе боба)
-        // Создадим буферы для воспроизведения (если нет файлов - синтезируем простые звуки)
-        function createNoiseBuffer(duration, type = 'white') {
-            const sampleRate = audioCtx.sampleRate;
-            const buffer = audioCtx.createBuffer(1, sampleRate * duration, sampleRate);
-            const data = buffer.getChannelData(0);
-            if (type === 'white') {
-                for (let i = 0; i < data.length; i++) {
-                    data[i] = (Math.random() * 2 - 1) * 0.3;
-                }
-            } else if (type === 'breath') {
-                // синусоида с шумом
-                for (let i = 0; i < data.length; i++) {
-                    const t = i / sampleRate;
-                    data[i] = Math.sin(t * 200) * 0.2 * Math.exp(-t * 2) + (Math.random() - 0.5) * 0.1;
-                }
-            }
-            return buffer;
-        }
-
-        // Если звуки не загружены, создаём заглушки
-        if (!sounds.footstep) {
-            sounds.footstep = createNoiseBuffer(0.1, 'white');
-            console.log('SWILL: синтезирован звук шагов');
-        }
-        if (!sounds.breath) {
-            sounds.breath = createNoiseBuffer(0.5, 'breath');
-            console.log('SWILL: синтезирован звук отдышки');
-        }
-        if (!sounds.birds) {
-            // Для птиц сделаем простой высокий тон с модуляцией
-            const sampleRate = audioCtx.sampleRate;
-            const buffer = audioCtx.createBuffer(1, sampleRate * 4, sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                const t = i / sampleRate;
-                data[i] = Math.sin(t * 800 + Math.sin(t * 3) * 100) * 0.15 * (0.5 + 0.5 * Math.sin(t * 0.5));
-            }
-            sounds.birds = buffer;
-            console.log('SWILL: синтезирован звук птиц');
-        }
-
-        // --- ВОСПРОИЗВЕДЕНИЕ ЗВУКОВ ---
-        let birdsSource = null;
-        let breathSource = null;
-        let isBreathPlaying = false;
-
-        function playSound(buffer, loop = false, volume = 1.0) {
-            if (!buffer) return null;
-            const source = audioCtx.createBufferSource();
-            source.buffer = buffer;
-            const gain = audioCtx.createGain();
-            gain.gain.value = volume;
-            source.connect(gain);
-            gain.connect(audioCtx.destination);
-            source.loop = loop;
-            source.start();
-            return source;
-        }
-
-        function stopSound(source) {
-            if (source) {
-                try { source.stop(); } catch(e) {}
-            }
-        }
-
-        // Запускаем птиц (циклично, громкость 0.3)
-        if (sounds.birds) {
-            birdsSource = playSound(sounds.birds, true, 0.3);
-        }
-
-        // --- ФУНКЦИЯ ДЛЯ КОЛЛИЗИЙ ---
-        function checkCollisions(newPos) {
-            // Радиус игрока (для сферы)
-            const playerRadius = 0.5;
-            const playerHeight = 1.8;
-
-            // Проверяем каждый коллайдер
-            for (const col of colliders) {
-                if (col.type === 'box') {
-                    // AABB - приближаем игрока как сферу
-                    const half = col.half;
-                    const center = col.pos;
-                    // Проверяем пересечение сферы с AABB
-                    const dx = newPos.x - center.x;
-                    const dy = (newPos.y - playerHeight/2) - center.y; // центр сферы по Y
-                    const dz = newPos.z - center.z;
-                    // Расстояние от центра сферы до ближайшей точки куба
-                    const closestX = Math.max(-half.x, Math.min(half.x, dx));
-                    const closestY = Math.max(-half.y, Math.min(half.y, dy));
-                    const closestZ = Math.max(-half.z, Math.min(half.z, dz));
-                    const distX = dx - closestX;
-                    const distY = dy - closestY;
-                    const distZ = dz - closestZ;
-                    const dist = Math.sqrt(distX*distX + distY*distY + distZ*distZ);
-                    if (dist < playerRadius) {
-                        // Отталкиваем
-                        const overlap = playerRadius - dist;
-                        if (dist > 0.001) {
-                            const norm = new THREE.Vector3(distX, distY, distZ).normalize();
-                            newPos.add(norm.multiplyScalar(overlap));
-                        } else {
-                            // Если центр внутри, толкаем вверх
-                            newPos.y += overlap;
-                        }
-                    }
-                } else if (col.type === 'sphere') {
-                    const center = col.center;
-                    const dx = newPos.x - center.x;
-                    const dz = newPos.z - center.z;
-                    const dy = (newPos.y - playerHeight/2) - center.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-                    const minDist = col.radius + playerRadius;
-                    if (dist < minDist && dist > 0.001) {
-                        const overlap = minDist - dist;
-                        const norm = new THREE.Vector3(dx, dy, dz).normalize();
-                        newPos.add(norm.multiplyScalar(overlap));
-                    } else if (dist < 0.001) {
-                        newPos.x += 0.1;
-                        newPos.z += 0.1;
-                    }
-                }
-            }
-            return newPos;
-        }
-
-        // --- ИНТЕРФЕЙС (обновление полосок) ---
+        // --- HUD ---
         const healthBar = document.getElementById('healthBar');
         const staminaBar = document.getElementById('staminaBar');
-
-        let health = 100;
-        const maxHealth = 100;
 
         // --- ПОКАЧИВАНИЕ ---
         let bobPhase = 0;
         let isMoving = false;
-        let speed = 0;
 
         // --- ОСНОВНОЙ ЦИКЛ ---
         let lastTime = performance.now();
@@ -471,7 +349,7 @@
 
             if (document.pointerLockElement === renderer.domElement) {
                 // --- СКОРОСТЬ ---
-                const baseSpeed = 4.0; // единиц в секунду
+                const baseSpeed = 4.0;
                 const runMultiplier = (keys.shift && stamina > 0) ? 2.0 : 1.0;
                 const currentSpeed = baseSpeed * runMultiplier;
 
@@ -488,69 +366,36 @@
                 const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
                 camera.quaternion.setFromEuler(euler);
 
-                // --- ПЕРЕМЕЩЕНИЕ ---
-                let moveDelta = new THREE.Vector3(0,0,0);
+                // --- ДВИЖЕНИЕ ---
+                let newPos = camera.position.clone();
                 if (isMoving) {
                     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
                     forward.y = 0; forward.normalize();
                     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
                     right.y = 0; right.normalize();
-                    moveDelta = new THREE.Vector3()
+                    const moveDelta = new THREE.Vector3()
                         .addScaledVector(forward, -dir.z * currentSpeed * delta)
                         .addScaledVector(right, dir.x * currentSpeed * delta);
+                    newPos.x += moveDelta.x;
+                    newPos.z += moveDelta.z;
                 }
 
-                // --- ПРЫЖОК ---
+                // --- КОЛЛИЗИИ (коррекция X и Z) ---
+                newPos = resolveCollisions(newPos);
+
+                // --- ГРАВИТАЦИЯ И ПРЫЖКИ ---
                 if (keys.space && camera.position.y <= groundY + 0.01) {
                     velocityY = jumpSpeed;
                 }
-
-                // --- ГРАВИТАЦИЯ ---
                 velocityY += gravity * delta;
-                camera.position.y += velocityY * delta;
-
-                // --- ПРИЗЕМЛЕНИЕ ---
-                if (camera.position.y <= groundY) {
-                    camera.position.y = groundY;
+                newPos.y += velocityY * delta;
+                if (newPos.y < groundY) {
+                    newPos.y = groundY;
                     velocityY = 0;
                 }
 
-                // --- ПРИМЕНЕНИЕ ДВИЖЕНИЯ С КОЛЛИЗИЯМИ ---
-                if (moveDelta.lengthSq() > 0) {
-                    // Пробуем движение по X и Z отдельно для лучшей обработки скольжения
-                    const testPos = camera.position.clone();
-                    // Движение по X
-                    testPos.x += moveDelta.x;
-                    testPos = checkCollisions(testPos);
-                    // Движение по Z
-                    testPos.z += moveDelta.z;
-                    testPos = checkCollisions(testPos);
-                    // Проверка Y (при прыжке/падении) - отдельно
-                    // Но Y уже скорректирован гравитацией, проверяем вертикаль
-                    const yPos = testPos.y;
-                    testPos.y = camera.position.y; // временно сбрасываем Y, чтобы проверить XZ
-                    // После коррекции XZ, проверяем Y
-                    // Проверяем, не ушёл ли в пол
-                    // Для простоты оставляем как есть, коллизии по Y почти не нужны (только если стена высокая)
-                    // Но можно добавить проверку на столкновение с верхом стены - пропустим.
-                    camera.position.copy(testPos);
-                    // Восстанавливаем Y (уже с гравитацией и прыжком)
-                    camera.position.y = yPos;
-                    // Дополнительная проверка на землю
-                    if (camera.position.y < groundY) {
-                        camera.position.y = groundY;
-                        velocityY = 0;
-                    }
-                } else {
-                    // Если не двигаемся, просто проверяем коллизию текущей позиции
-                    let pos = camera.position.clone();
-                    pos = checkCollisions(pos);
-                    camera.position.copy(pos);
-                    if (camera.position.y < groundY) {
-                        camera.position.y = groundY;
-                        velocityY = 0;
-                    }
-                }
+                // --- ПРИМЕНЯЕМ ПОЗИЦИЮ ---
+                camera.position.copy(newPos);
 
                 // --- СТАМИНА ---
                 if (keys.shift && isMoving && camera.position.y <= groundY + 0.01) {
@@ -560,59 +405,23 @@
                 }
                 staminaBar.style.width = (stamina / maxStamina * 100) + '%';
 
-                // --- ЗВУКИ ШАГОВ ---
-                // Проигрываем шаг при каждом цикле боба (примерно 2 шага в секунду при ходьбе)
+                // --- ПОКАЧИВАНИЕ КАМЕРЫ (head bob) ---
                 if (isMoving && camera.position.y <= groundY + 0.01) {
                     const freq = runMultiplier > 1 ? 14 : 10;
-                    const prevPhase = bobPhase;
+                    const amp = runMultiplier > 1 ? 0.06 : 0.03;
                     bobPhase += currentSpeed * freq * delta;
-                    // Если перешли через целый период (2*PI) - шаг
-                    if (Math.floor(prevPhase / (Math.PI*2)) < Math.floor(bobPhase / (Math.PI*2))) {
-                        // Проигрываем звук шага
-                        if (sounds.footstep) {
-                            const source = audioCtx.createBufferSource();
-                            source.buffer = sounds.footstep;
-                            const gain = audioCtx.createGain();
-                            gain.gain.value = runMultiplier > 1 ? 0.6 : 0.4;
-                            source.connect(gain);
-                            gain.connect(audioCtx.destination);
-                            source.start();
-                            // автоматически остановится
-                        }
-                    }
+                    const bobOffset = Math.sin(bobPhase) * amp;
+                    camera.position.y += bobOffset * 0.3;
+                    if (camera.position.y < groundY) camera.position.y = groundY;
                 } else {
-                    // Если стоим - фаза не меняется, но можно её плавно сбросить
                     bobPhase *= 0.9;
                 }
 
-                // --- ПОКАЧИВАНИЕ КАМЕРЫ (уже есть, но добавим вертикаль) ---
-                if (isMoving && camera.position.y <= groundY + 0.01) {
-                    const amp = runMultiplier > 1 ? 0.06 : 0.03;
-                    const bobOffset = Math.sin(bobPhase) * amp;
-                    camera.position.y += bobOffset * 0.3;
-                    // Снова проверка земли (чтобы не провалиться)
-                    if (camera.position.y < groundY) camera.position.y = groundY;
-                }
-
-                // --- ЗВУК ОТДЫШКИ (когда стамина на нуле и пытаемся бежать) ---
-                if (stamina <= 0 && keys.shift && isMoving && !isBreathPlaying) {
-                    if (sounds.breath) {
-                        breathSource = playSound(sounds.breath, false, 0.7);
-                        isBreathPlaying = true;
-                        // Автоматически сбросить флаг через длительность звука
-                        setTimeout(() => { isBreathPlaying = false; }, 800);
-                    }
-                }
-
-                // --- ОБНОВЛЕНИЕ ЗДОРОВЬЯ (для теста можно убавлять при касании аномалий, но пока просто) ---
-                // healthBar.style.width = (health / maxHealth * 100) + '%';
-
-                // --- ГРАНИЦЫ КАРТЫ (опционально) ---
+                // --- ГРАНИЦЫ КАРТЫ ---
                 const limit = 28;
                 if (Math.abs(camera.position.x) > limit) camera.position.x = Math.sign(camera.position.x) * limit;
                 if (Math.abs(camera.position.z) > limit) camera.position.z = Math.sign(camera.position.z) * limit;
-
-            } // конец управления
+            }
 
             renderer.render(scene, camera);
         }
@@ -625,7 +434,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('SWILL: всё готово! Коллизии, стамина, HUD, звуки.');
+        console.log('SWILL: ДВИЖЕНИЕ ПОЧИНЕНО!');
     </script>
 </body>
 </html>
