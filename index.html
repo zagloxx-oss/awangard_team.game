@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>STALKER — ДОМ С ДВЕРЬЮ И НЕБО</title>
+    <title>STALKER — ДОМ С ДВЕРЬЮ (РАБОТАЕТ)</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #blocker {
@@ -179,19 +179,17 @@
             );
             sky.position.y = 0;
             scene.add(sky);
-            console.log('Небо загружено');
         } else {
-            // Заглушка, если текстуры нет
+            // Заглушка
             const sky = new THREE.Mesh(
                 new THREE.SphereGeometry(200, 32, 32),
                 new THREE.MeshBasicMaterial({ color: 0x4a7b9d, side: THREE.BackSide })
             );
             sky.position.y = 0;
             scene.add(sky);
-            console.log('Небо-заглушка');
         }
 
-        // --- ЗЕМЛЯ (плоская) ---
+        // --- ЗЕМЛЯ ---
         const groundMat = new THREE.MeshStandardMaterial({ map: textures.zemla || undefined, roughness: 0.8, metalness: 0.0, side: THREE.DoubleSide });
         const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), groundMat);
         ground.rotation.x = -Math.PI/2;
@@ -199,7 +197,7 @@
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // --- ТРАВА (пятно) ---
+        // --- ТРАВА ---
         if (textures.trawa) {
             const grassMat = new THREE.MeshStandardMaterial({ map: textures.trawa, roughness: 0.9, metalness: 0.0, side: THREE.DoubleSide });
             const grass = new THREE.Mesh(new THREE.PlaneGeometry(25, 25), grassMat);
@@ -209,7 +207,7 @@
             scene.add(grass);
         }
 
-        // --- ДЕРЕВЬЯ (крест-накрест) ---
+        // --- ДЕРЕВЬЯ ---
         function createCrossTree(texture, x, z, height = 5, width = 2.5) {
             if (!texture) return null;
             const mat = new THREE.MeshStandardMaterial({
@@ -251,7 +249,7 @@
             colliders.push({ type: 'sphere', center: new THREE.Vector3(pos.x, 2.5, pos.z), radius: 1.0 });
         });
 
-        // --- ДОМИК С ДВЕРЬЮ (УПРОЩЁННЫЙ, БЕЗ ГЛЮКОВ) ---
+        // --- ДОМИК С ШИРОКОЙ ДВЕРЬЮ (1.8 м) ---
         function createHouse() {
             const houseX = 10;
             const houseZ = -5;
@@ -259,7 +257,7 @@
             const depth = 3.5;
             const height = 3;
             const wallThick = 0.15;
-            const doorWidth = 1.2;  // шире, чтобы точно пройти
+            const doorWidth = 1.8;   // УВЕЛИЧИЛ ДО 1.8
             const doorHeight = 2.0;
 
             const wallMat = new THREE.MeshStandardMaterial({
@@ -291,7 +289,7 @@
             right.castShadow = true; right.receiveShadow = true;
             group.add(right);
 
-            // Передняя левая
+            // Передняя левая (ширина = (width - doorWidth)/2)
             const fl = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
             fl.position.set(-(width/2 + doorWidth/2)/2, height/2, depth/2);
             fl.castShadow = true; fl.receiveShadow = true;
@@ -323,7 +321,7 @@
 
             group.position.set(houseX, 0, houseZ);
 
-            // --- КОЛЛИЗИИ СТЕН (без дверного проёма) ---
+            // --- КОЛЛИЗИИ СТЕН (с учётом увеличенной двери) ---
             // Задняя
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX, height/2, houseZ - depth/2), half: new THREE.Vector3(width/2, height/2, wallThick/2) });
             // Левая
@@ -489,7 +487,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('SWILL: ВСЁ РАБОТАЕТ! ДВЕРЬ ОТКРЫТА, НЕБО ЕСТЬ.');
+        console.log('SWILL: ДВЕРЬ ШИРИНОЙ 1.8 М — ЗАХОДИ СВОБОДНО!');
     </script>
 </body>
 </html>
