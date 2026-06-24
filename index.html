@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STALKER TEST — БЕРЁЗА КРЕСТ</title>
+    <title>STALKER TEST — БЕГ, ПРЫЖКИ, БОБ</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #blocker {
@@ -27,10 +27,25 @@
             border: 3px solid #0f0;
             border-radius: 12px;
         }
+        #info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 15px;
+            border-radius: 8px;
+            z-index: 100;
+            pointer-events: none;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
     <div id="blocker"><span>КЛИКНИ, ЧТОБЫ ВОЙТИ В ЗОНУ</span></div>
+    <div id="info">WASD — ходьба | Shift — бег | Пробел — прыжок</div>
 
     <script type="importmap">
     {
@@ -48,7 +63,7 @@
         scene.background = new THREE.Color(0x1a2b3c);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.80, 5); // рост игрока 1.80
+        camera.position.set(0, 1.80, 5); // начальная позиция, высота глаз 1.80
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -64,30 +79,37 @@
         });
 
         // --- УПРАВЛЕНИЕ ---
-        const keys = { w: false, a: false, s: false, d: false };
+        const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
         document.addEventListener('keydown', (e) => {
             switch(e.code) {
-                case 'KeyW': keys.w = true; break;
-                case 'KeyA': keys.a = true; break;
-                case 'KeyS': keys.s = true; break;
-                case 'KeyD': keys.d = true; break;
+                case 'KeyW': keys.w = true; e.preventDefault(); break;
+                case 'KeyA': keys.a = true; e.preventDefault(); break;
+                case 'KeyS': keys.s = true; e.preventDefault(); break;
+                case 'KeyD': keys.d = true; e.preventDefault(); break;
+                case 'ShiftLeft':
+                case 'ShiftRight': keys.shift = true; e.preventDefault(); break;
+                case 'Space': keys.space = true; e.preventDefault(); break;
             }
         });
         document.addEventListener('keyup', (e) => {
             switch(e.code) {
-                case 'KeyW': keys.w = false; break;
-                case 'KeyA': keys.a = false; break;
-                case 'KeyS': keys.s = false; break;
-                case 'KeyD': keys.d = false; break;
+                case 'KeyW': keys.w = false; e.preventDefault(); break;
+                case 'KeyA': keys.a = false; e.preventDefault(); break;
+                case 'KeyS': keys.s = false; e.preventDefault(); break;
+                case 'KeyD': keys.d = false; e.preventDefault(); break;
+                case 'ShiftLeft':
+                case 'ShiftRight': keys.shift = false; e.preventDefault(); break;
+                case 'Space': keys.space = false; e.preventDefault(); break;
             }
         });
 
+        // --- МЫШЬ ---
         let yaw = 0, pitch = 0;
         document.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement !== renderer.domElement) return;
             yaw -= e.movementX * 0.002;
             pitch -= e.movementY * 0.002;
-            pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+            pitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, pitch));
         });
 
         // --- СВЕТ ---
@@ -111,7 +133,7 @@
         fill.position.set(-20, 10, -20);
         scene.add(fill);
 
-        // --- ЗАГРУЗКА ТЕКСТУР ---
+        // --- ТЕКСТУРЫ (как раньше) ---
         const loader = new THREE.TextureLoader();
         const textures = {};
 
@@ -124,13 +146,12 @@
             });
         }
 
-        // Только нужные текстуры: земля, трава, стена, небо, берёза (PNG)
         const texList = {
             zemla: 'zemla.jpg',
             trawa: 'trawa.jpg',
             stena: 'stena.jpg',
             nebo: 'nebo.jpg',
-            bereza: 'bereza.png'   // новая правильная текстура
+            bereza: 'bereza.png'
         };
 
         const loadPromises = Object.entries(texList).map(async ([key, file]) => {
@@ -142,9 +163,8 @@
         await Promise.all(loadPromises);
         console.log('SWILL: все текстуры загружены');
 
-        // --- СОЗДАНИЕ МИРА ---
-
-        // 1. ЗЕМЛЯ (основная)
+        // --- МИР ---
+        // Земля
         if (textures.zemla) {
             const ground = new THREE.Mesh(
                 new THREE.PlaneGeometry(60, 60),
@@ -155,8 +175,7 @@
             ground.receiveShadow = true;
             scene.add(ground);
         }
-
-        // 2. ТРАВА (слой поверх, для разнообразия)
+        // Трава
         if (textures.trawa) {
             const grass = new THREE.Mesh(
                 new THREE.PlaneGeometry(20, 20),
@@ -167,8 +186,7 @@
             grass.receiveShadow = true;
             scene.add(grass);
         }
-
-        // 3. СТЕНА (тестовый объект)
+        // Стена
         if (textures.stena) {
             const wall = new THREE.Mesh(
                 new THREE.BoxGeometry(8, 4, 0.5),
@@ -179,8 +197,7 @@
             wall.receiveShadow = true;
             scene.add(wall);
         }
-
-        // 4. НЕБО (сфера)
+        // Небо
         if (textures.nebo) {
             const sky = new THREE.Mesh(
                 new THREE.SphereGeometry(200, 32, 32),
@@ -190,10 +207,9 @@
             scene.add(sky);
         }
 
-        // 5. ДЕРЕВЬЯ (КРЕСТ-НАКРЕСТ) — только берёза
+        // --- ДЕРЕВЬЯ (крест-накрест) ---
         function createCrossTree(texture, x, z, height = 5, width = 2.5) {
             if (!texture) return null;
-
             const mat = new THREE.MeshStandardMaterial({
                 map: texture,
                 transparent: true,
@@ -202,70 +218,124 @@
                 metalness: 0.0,
                 depthWrite: true
             });
-
-            // Первая плоскость (ось X)
             const plane1 = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
             plane1.position.set(x, height/2, z);
             plane1.castShadow = true;
             plane1.receiveShadow = false;
-
-            // Вторая плоскость (повёрнута на 90° по Y)
             const plane2 = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
             plane2.position.set(x, height/2, z);
             plane2.rotation.y = Math.PI / 2;
             plane2.castShadow = true;
             plane2.receiveShadow = false;
-
-            // Группа для удобства
             const group = new THREE.Group();
             group.add(plane1);
             group.add(plane2);
             return group;
         }
 
-        // Расставляем деревья (5 штук в разных местах)
         if (textures.bereza) {
-            const positions = [
-                [-3, -2],
-                [4, -3],
-                [2, 5],
-                [-4, 4],
-                [6, 2]
-            ];
-            positions.forEach(([x, z]) => {
+            const positions = [[-3,-2],[4,-3],[2,5],[-4,4],[6,2]];
+            positions.forEach(([x,z]) => {
                 const tree = createCrossTree(textures.bereza, x, z, 5, 2.5);
                 if (tree) scene.add(tree);
             });
-            console.log('SWILL: посажены берёзы крест-накрест, высота 5м');
-        } else {
-            console.warn('SWILL: текстура берёзы не загружена, деревьев нет');
         }
 
-        // --- АНИМАЦИЯ ---
+        // --- ФИЗИКА ДЛЯ ПРЫЖКОВ ---
+        let velocityY = 0;
+        const gravity = -9.8; // ускорение свободного падения
+        const jumpSpeed = 4.5; // начальная скорость прыжка
+        const groundY = 1.80; // высота глаз игрока над землёй
+
+        // --- ПОКАЧИВАНИЕ КАМЕРЫ (head bob) ---
+        let bobPhase = 0; // фаза синуса
+        let isMoving = false;
+        let speed = 0;
+
+        // --- ОСНОВНОЙ ЦИКЛ ---
         function animate() {
             requestAnimationFrame(animate);
-            if (document.pointerLockElement === renderer.domElement) {
-                const speed = 0.08;
-                const dir = new THREE.Vector3(0, 0, 0);
-                if (keys.w) dir.z -= speed;
-                if (keys.s) dir.z += speed;
-                if (keys.a) dir.x -= speed;
-                if (keys.d) dir.x += speed;
 
+            if (document.pointerLockElement === renderer.domElement) {
+                // --- СКОРОСТЬ ---
+                const baseSpeed = 0.08;
+                const runMultiplier = keys.shift ? 2.0 : 1.0; // бег в 2 раза быстрее
+                const currentSpeed = baseSpeed * runMultiplier;
+
+                // --- НАПРАВЛЕНИЕ ДВИЖЕНИЯ ---
+                const dir = new THREE.Vector3(0, 0, 0);
+                if (keys.w) dir.z -= 1;
+                if (keys.s) dir.z += 1;
+                if (keys.a) dir.x -= 1;
+                if (keys.d) dir.x += 1;
+                isMoving = dir.lengthSq() > 0;
+                if (isMoving) dir.normalize();
+
+                // --- ПОВОРОТ КАМЕРЫ ---
                 const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
                 camera.quaternion.setFromEuler(euler);
 
-                if (dir.lengthSq() > 0) {
+                // --- ПЕРЕМЕЩЕНИЕ В ЛОКАЛЬНОМ ПРОСТРАНСТВЕ ---
+                if (isMoving) {
                     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
                     forward.y = 0; forward.normalize();
                     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
                     right.y = 0; right.normalize();
-                    camera.position.add(new THREE.Vector3().addScaledVector(forward, -dir.z).addScaledVector(right, dir.x));
+                    const move = new THREE.Vector3()
+                        .addScaledVector(forward, -dir.z * currentSpeed)
+                        .addScaledVector(right, dir.x * currentSpeed);
+                    camera.position.add(move);
                 }
-                if (camera.position.y < 1.80) camera.position.y = 1.80;
-            }
+
+                // --- ПРЫЖОК ---
+                if (keys.space && camera.position.y <= groundY + 0.01) {
+                    velocityY = jumpSpeed;
+                }
+
+                // --- ГРАВИТАЦИЯ ---
+                velocityY += gravity * 0.016; // примерно 60 кадров в секунду
+                camera.position.y += velocityY * 0.016;
+
+                // --- ПРИЗЕМЛЕНИЕ ---
+                if (camera.position.y <= groundY) {
+                    camera.position.y = groundY;
+                    velocityY = 0;
+                }
+
+                // --- ПОКАЧИВАНИЕ КАМЕРЫ (head bob) ---
+                if (isMoving && camera.position.y <= groundY + 0.01) {
+                    // Частота и амплитуда зависят от скорости
+                    const freq = runMultiplier > 1 ? 14 : 10; // бег быстрее качает
+                    const amp = runMultiplier > 1 ? 0.06 : 0.03; // бег сильнее
+                    bobPhase += currentSpeed * freq * 0.016;
+                    const bobOffset = Math.sin(bobPhase) * amp;
+                    // Применяем смещение только по Y (вертикальное покачивание)
+                    // Но также можно делать небольшое смещение по X для имитации шага
+                    camera.position.y += bobOffset * 0.3; // небольшая модуляция высоты (уже с учётом гравитации)
+                    // Для горизонтального покачивания (влево-вправо) — раскомментируй, если нужно
+                    // const bobX = Math.sin(bobPhase * 0.5) * amp * 0.5;
+                    // camera.position.x += bobX * 0.1; // очень слабо
+                } else {
+                    // Если стоим или в воздухе — сбрасываем фазу медленно
+                    bobPhase *= 0.9;
+                }
+
+                // --- НЕ ПРОВАЛИВАТЬСЯ ПОД ЗЕМЛЮ (повторная проверка) ---
+                if (camera.position.y < groundY) {
+                    camera.position.y = groundY;
+                    velocityY = 0;
+                }
+
+                // --- НЕ УХОДИТЬ ЗА ГРАНИЦЫ КАРТЫ (опционально) ---
+                const limit = 28;
+                if (Math.abs(camera.position.x) > limit) camera.position.x = Math.sign(camera.position.x) * limit;
+                if (Math.abs(camera.position.z) > limit) camera.position.z = Math.sign(camera.position.z) * limit;
+
+            } // конец блока управления
+
             renderer.render(scene, camera);
         }
+
         animate();
 
         window.addEventListener('resize', () => {
@@ -274,7 +344,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('SWILL: сцена готова, иди тестируй берёзы!');
+        console.log('SWILL: добавлены бег (Shift), прыжки (Пробел), покачивание камеры');
     </script>
 </body>
 </html>
