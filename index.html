@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>STALKER — ПЛОСКО, НЕБО, ДОМ</title>
+    <title>STALKER — ДОМ С КОЛЛИЗИЯМИ</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #blocker {
@@ -78,7 +78,6 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- ИНИЦИАЛИЗАЦИЯ ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a2b3c);
         scene.fog = new THREE.Fog(0x1a2b3c, 50, 90);
@@ -173,27 +172,17 @@
         }));
         console.log('SWILL: текстуры загружены');
 
-        // --- ПЛОСКАЯ ЗЕМЛЯ (80x80) ---
-        const groundMat = new THREE.MeshStandardMaterial({
-            map: textures.zemla || undefined,
-            roughness: 0.8,
-            metalness: 0.0,
-            side: THREE.DoubleSide,
-        });
+        // --- ПЛОСКАЯ ЗЕМЛЯ ---
+        const groundMat = new THREE.MeshStandardMaterial({ map: textures.zemla || undefined, roughness: 0.8, metalness: 0.0, side: THREE.DoubleSide });
         const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), groundMat);
         ground.rotation.x = -Math.PI/2;
         ground.position.y = 0;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // --- ТРАВА (пятно) ---
+        // --- ТРАВА ---
         if (textures.trawa) {
-            const grassMat = new THREE.MeshStandardMaterial({
-                map: textures.trawa,
-                roughness: 0.9,
-                metalness: 0.0,
-                side: THREE.DoubleSide,
-            });
+            const grassMat = new THREE.MeshStandardMaterial({ map: textures.trawa, roughness: 0.9, metalness: 0.0, side: THREE.DoubleSide });
             const grass = new THREE.Mesh(new THREE.PlaneGeometry(25, 25), grassMat);
             grass.rotation.x = -Math.PI/2;
             grass.position.set(0, 0.02, 0);
@@ -201,7 +190,7 @@
             scene.add(grass);
         }
 
-        // --- НЕБО (текстура на сфере) ---
+        // --- НЕБО ---
         if (textures.nebo) {
             const sky = new THREE.Mesh(
                 new THREE.SphereGeometry(200, 32, 32),
@@ -211,7 +200,7 @@
             scene.add(sky);
         }
 
-        // --- ДЕРЕВЬЯ (крест-накрест) ---
+        // --- ДЕРЕВЬЯ ---
         function createCrossTree(texture, x, z, height = 5, width = 2.5) {
             if (!texture) return null;
             const mat = new THREE.MeshStandardMaterial({
@@ -240,10 +229,10 @@
             });
         }
 
-        // --- КОЛЛИЗИИ (стена, деревья, дом) ---
+        // --- КОЛЛИЗИИ (общий массив) ---
         const colliders = [];
 
-        // Стена (AABB)
+        // Стена
         const wallPos = new THREE.Vector3(-5, 2, -8);
         const wallHalf = new THREE.Vector3(4, 2, 0.25);
         colliders.push({ type: 'box', pos: wallPos, half: wallHalf });
@@ -259,9 +248,8 @@
             });
         });
 
-        // --- ДОМИК (коробка с дверью) ---
+        // --- ДОМИК С КОЛЛИЗИЯМИ (исправлено смещение) ---
         function createHouse() {
-            const group = new THREE.Group();
             const houseX = 10;
             const houseZ = -5;
             const width = 4;
@@ -289,6 +277,9 @@
                 metalness: 0.0,
                 side: THREE.DoubleSide,
             });
+
+            // Создаём группу
+            const group = new THREE.Group();
 
             // Задняя стена
             const backWall = new THREE.Mesh(new THREE.BoxGeometry(width, height, wallThick), wallMat);
@@ -338,33 +329,59 @@
             roof.castShadow = true; roof.receiveShadow = true;
             group.add(roof);
 
-            // --- КОЛЛИЗИИ ДОМА (добавляем ВСЕ стены) ---
-            // Задняя
-            colliders.push({ type: 'box', pos: new THREE.Vector3(0, height/2, -depth/2), half: new THREE.Vector3(width/2, height/2, wallThick/2) });
-            // Левая
-            colliders.push({ type: 'box', pos: new THREE.Vector3(-width/2, height/2, 0), half: new THREE.Vector3(wallThick/2, height/2, depth/2) });
-            // Правая
-            colliders.push({ type: 'box', pos: new THREE.Vector3(width/2, height/2, 0), half: new THREE.Vector3(wallThick/2, height/2, depth/2) });
-            // Передняя левая часть
-            colliders.push({ type: 'box', pos: new THREE.Vector3(-(width/2 + doorWidth/2)/2, height/2, depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
-            // Передняя правая часть
-            colliders.push({ type: 'box', pos: new THREE.Vector3((width/2 + doorWidth/2)/2, height/2, depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
-            // Верхняя часть над дверью
-            colliders.push({ type: 'box', pos: new THREE.Vector3(0, (height + doorHeight)/2, depth/2), half: new THREE.Vector3(doorWidth/2, (height - doorHeight)/2, wallThick/2) });
-
+            // Устанавливаем позицию группы
             group.position.set(houseX, 0, houseZ);
+
+            // --- КОЛЛИЗИИ ДОМА с учётом смещения ---
+            // Задняя стена
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3(houseX, height/2, houseZ - depth/2),
+                half: new THREE.Vector3(width/2, height/2, wallThick/2)
+            });
+            // Левая стена
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3(houseX - width/2, height/2, houseZ),
+                half: new THREE.Vector3(wallThick/2, height/2, depth/2)
+            });
+            // Правая стена
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3(houseX + width/2, height/2, houseZ),
+                half: new THREE.Vector3(wallThick/2, height/2, depth/2)
+            });
+            // Передняя левая часть
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3(houseX - (width/2 + doorWidth/2)/2, height/2, houseZ + depth/2),
+                half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2)
+            });
+            // Передняя правая часть
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3(houseX + (width/2 + doorWidth/2)/2, height/2, houseZ + depth/2),
+                half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2)
+            });
+            // Верхняя часть над дверью
+            colliders.push({
+                type: 'box',
+                pos: new THREE.Vector3(houseX, (height + doorHeight)/2, houseZ + depth/2),
+                half: new THREE.Vector3(doorWidth/2, (height - doorHeight)/2, wallThick/2)
+            });
+
             return group;
         }
 
         const house = createHouse();
         scene.add(house);
 
-        // --- ФИЗИКА (прыжки, гравитация) ---
+        // --- ФИЗИКА ---
         let velocityY = 0;
         const gravity = -9.8;
         const jumpSpeed = 4.5;
         const jumpStaminaCost = 15;
-        const groundY = 1.80; // высота глаз игрока
+        const groundY = 1.80;
 
         let stamina = 100;
         const maxStamina = 100;
@@ -380,7 +397,6 @@
         const playerRadius = 0.5;
         const playerHeight = 1.8;
 
-        // Функция коллизий (та же, что была, только для X и Z)
         function resolveCollisions(pos) {
             for (const col of colliders) {
                 if (col.type === 'box') {
@@ -428,12 +444,10 @@
             lastTime = time;
 
             if (document.pointerLockElement === renderer.domElement) {
-                // --- СКОРОСТЬ ---
                 const baseSpeed = 4.0;
                 const runMultiplier = (keys.shift && stamina > 0) ? 2.0 : 1.0;
                 const currentSpeed = baseSpeed * runMultiplier;
 
-                // --- НАПРАВЛЕНИЕ ---
                 const dir = new THREE.Vector3(0, 0, 0);
                 if (keys.w) dir.z -= 1;
                 if (keys.s) dir.z += 1;
@@ -442,11 +456,9 @@
                 isMoving = dir.lengthSq() > 0;
                 if (isMoving) dir.normalize();
 
-                // --- ПОВОРОТ ---
                 const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
                 camera.quaternion.setFromEuler(euler);
 
-                // --- ДВИЖЕНИЕ ---
                 let newPos = camera.position.clone();
                 if (isMoving) {
                     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
@@ -460,16 +472,13 @@
                     newPos.z += moveDelta.z;
                 }
 
-                // --- КОЛЛИЗИИ (только X и Z) ---
                 newPos = resolveCollisions(newPos);
 
-                // --- ПРЫЖОК ---
                 if (keys.space && camera.position.y <= groundY + 0.01 && stamina >= jumpStaminaCost) {
                     velocityY = jumpSpeed;
                     stamina -= jumpStaminaCost;
                 }
 
-                // --- ГРАВИТАЦИЯ ---
                 velocityY += gravity * delta;
                 newPos.y += velocityY * delta;
                 if (newPos.y < groundY) {
@@ -479,7 +488,6 @@
 
                 camera.position.copy(newPos);
 
-                // --- СТАМИНА ---
                 if (keys.shift && isMoving && camera.position.y <= groundY + 0.1) {
                     stamina = Math.max(0, stamina - staminaDrain * delta);
                 } else {
@@ -487,7 +495,6 @@
                 }
                 staminaBar.style.width = (stamina / maxStamina * 100) + '%';
 
-                // --- ПОКАЧИВАНИЕ ---
                 if (isMoving && camera.position.y <= groundY + 0.1) {
                     const freq = runMultiplier > 1 ? 14 : 10;
                     const amp = runMultiplier > 1 ? 0.06 : 0.03;
@@ -499,7 +506,6 @@
                     bobPhase *= 0.9;
                 }
 
-                // --- ГРАНИЦЫ КАРТЫ ---
                 const limit = 35;
                 if (Math.abs(camera.position.x) > limit) camera.position.x = Math.sign(camera.position.x) * limit;
                 if (Math.abs(camera.position.z) > limit) camera.position.z = Math.sign(camera.position.z) * limit;
@@ -516,7 +522,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('SWILL: Плоская земля, небо, дом с коллизиями!');
+        console.log('SWILL: КОЛЛИЗИИ ДОМА РАБОТАЮТ!');
     </script>
 </body>
 </html>
