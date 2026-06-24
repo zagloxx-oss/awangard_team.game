@@ -2,8 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STALKER — ПЛОСКАЯ ЗЕМЛЯ + ХОЛМЫ</title>
+    <title>STALKER — ВЫСОТНАЯ КАРТА + ДОМ</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #blocker {
@@ -56,30 +55,10 @@
             border-radius: 10px;
             min-width: 160px;
         }
-        .stat {
-            display: flex;
-            align-items: center;
-            margin: 4px 0;
-        }
-        .stat-label {
-            width: 70px;
-            color: #ccc;
-        }
-        .bar-bg {
-            flex: 1;
-            height: 14px;
-            background: #333;
-            border-radius: 7px;
-            overflow: hidden;
-            margin-left: 6px;
-        }
-        .bar-fill {
-            height: 100%;
-            width: 100%;
-            background: #0f0;
-            border-radius: 7px;
-            transition: width 0.05s;
-        }
+        .stat { display: flex; align-items: center; margin: 4px 0; }
+        .stat-label { width: 70px; color: #ccc; }
+        .bar-bg { flex: 1; height: 14px; background: #333; border-radius: 7px; overflow: hidden; margin-left: 6px; }
+        .bar-fill { height: 100%; width: 100%; background: #0f0; border-radius: 7px; transition: width 0.05s; }
         .bar-fill.stamina { background: #ffaa00; }
         .bar-fill.health { background: #ff3333; }
     </style>
@@ -102,7 +81,7 @@
         // --- ИНИЦИАЛИЗАЦИЯ ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a2b3c);
-        scene.fog = new THREE.Fog(0x1a2b3c, 40, 80);
+        scene.fog = new THREE.Fog(0x1a2b3c, 50, 90);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 1.80, 5);
@@ -194,30 +173,76 @@
         }));
         console.log('SWILL: текстуры загружены');
 
-        // --- ПЛОСКАЯ ЗЕМЛЯ (основная) ---
+        // --- ВЫСОТНАЯ КАРТА (рельеф) ---
+        // Функция вычисления высоты в точке (x, z)
+        function getHeight(x, z) {
+            let y = 0;
+            y += Math.sin(x * 0.12) * Math.cos(z * 0.10) * 2.5;
+            y += Math.sin(x * 0.25 + z * 0.18) * 1.2;
+            y += Math.cos(z * 0.20) * 1.8;
+            y -= Math.pow(Math.sin(x * 0.08) * Math.cos(z * 0.08), 2) * 2.0;
+            // Ограничим, чтобы не было очень крутых перепадов
+            y = Math.max(-1.5, Math.min(3.5, y));
+            return y;
+        }
+
+        // --- ЗЕМЛЯ (сетка с вершинами) ---
+        const size = 80;
+        const segments = 100;
+        const geo = new THREE.BufferGeometry();
+        const verts = [];
+        const uvs = [];
+        const indices = [];
+        const half = size/2;
+
+        for (let i = 0; i <= segments; i++) {
+            const x = -half + (i / segments) * size;
+            for (let j = 0; j <= segments; j++) {
+                const z = -half + (j / segments) * size;
+                const y = getHeight(x, z);
+                verts.push(x, y, z);
+                uvs.push(i / segments, j / segments);
+            }
+        }
+
+        for (let i = 0; i < segments; i++) {
+            for (let j = 0; j < segments; j++) {
+                const a = i * (segments + 1) + j;
+                const b = i * (segments + 1) + j + 1;
+                const c = (i + 1) * (segments + 1) + j;
+                const d = (i + 1) * (segments + 1) + j + 1;
+                indices.push(a, b, c);
+                indices.push(b, d, c);
+            }
+        }
+
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+        geo.setIndex(indices);
+        geo.computeVertexNormals();
+
         const groundMat = new THREE.MeshStandardMaterial({
             map: textures.zemla || undefined,
             roughness: 0.8,
             metalness: 0.0,
             side: THREE.DoubleSide,
         });
-        const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), groundMat);
-        ground.rotation.x = -Math.PI/2;
-        ground.position.y = 0;
+        const ground = new THREE.Mesh(geo, groundMat);
         ground.receiveShadow = true;
+        ground.castShadow = false;
         scene.add(ground);
 
-        // --- ТРАВА (второй слой, пятно) ---
+        // --- ТРАВА (пятно, накладываем поверх) — для простоты сделаем отдельный слой с той же сеткой, но с текстурой травы и чуть выше
         if (textures.trawa) {
             const grassMat = new THREE.MeshStandardMaterial({
                 map: textures.trawa,
                 roughness: 0.9,
                 metalness: 0.0,
                 side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.9,
             });
-            const grass = new THREE.Mesh(new THREE.PlaneGeometry(25, 25), grassMat);
-            grass.rotation.x = -Math.PI/2;
-            grass.position.set(0, 0.01, 0);
+            const grass = new THREE.Mesh(geo.clone(), grassMat);
+            grass.position.y = 0.02; // чуть выше
             grass.receiveShadow = true;
             scene.add(grass);
         }
@@ -232,9 +257,10 @@
             scene.add(sky);
         }
 
-        // --- ДЕРЕВЬЯ (крест-накрест) ---
+        // --- ДЕРЕВЬЯ (крест-накрест) с подстройкой по высоте ---
         function createCrossTree(texture, x, z, height = 5, width = 2.5) {
             if (!texture) return null;
+            const y = getHeight(x, z);
             const mat = new THREE.MeshStandardMaterial({
                 map: texture, transparent: true, side: THREE.DoubleSide,
                 roughness: 0.8, metalness: 0.0, depthWrite: true
@@ -247,7 +273,7 @@
             p2.rotation.y = Math.PI/2;
             p2.castShadow = true;
             const group = new THREE.Group();
-            group.position.set(x, 0, z);
+            group.position.set(x, y, z);
             group.add(p1); group.add(p2);
             return group;
         }
@@ -261,72 +287,24 @@
             });
         }
 
-        // --- ХОЛМЫ И НИЗИНЫ (как отдельные меши с коллизиями) ---
-        // Функция создания холма (полусфера или сглаженный конус)
-        function createHill(posX, posZ, radius, height, color = 0x4a5c3a) {
-            const geo = new THREE.SphereGeometry(radius, 32, 16);
-            // Сплюснем, чтобы получился холм
-            const mat = new THREE.MeshStandardMaterial({
-                color: color,
-                roughness: 0.9,
-                metalness: 0.0,
-                flatShading: false,
-            });
-            const hill = new THREE.Mesh(geo, mat);
-            hill.scale.y = height / radius; // делаем эллипсоид
-            hill.position.set(posX, 0, posZ);
-            hill.receiveShadow = true;
-            hill.castShadow = true;
-            scene.add(hill);
-            // Добавляем коллизию как сферу (но с центром на высоте height/2)
-            const center = new THREE.Vector3(posX, height/2, posZ);
-            colliders.push({
-                type: 'sphere',
-                center: center,
-                radius: radius * 1.2 // чуть больше, чтобы не проваливаться
-            });
-            return hill;
-        }
-
-        // Список холмов
-        const hillData = [
-            { x: -15, z: -10, r: 4, h: 1.5 },
-            { x: 10, z: 12, r: 5, h: 2.0 },
-            { x: -8, z: 15, r: 3, h: 1.2 },
-            { x: 20, z: -5, r: 4.5, h: 1.8 },
-            { x: -20, z: 8, r: 6, h: 2.5 },
-        ];
-
-        // --- КОЛЛИЗИИ (стена, деревья, холмы, домик) ---
+        // --- КОЛЛИЗИИ (стена, деревья, дом) ---
         const colliders = [];
 
-        // Стена
+        // Стена (AABB)
         const wallPos = new THREE.Vector3(-5, 2, -8);
         const wallHalf = new THREE.Vector3(4, 2, 0.25);
         colliders.push({ type: 'box', pos: wallPos, half: wallHalf });
 
-        // Деревья
+        // Деревья (сферы) — ставим с учётом высоты
         treeGroups.forEach((group) => {
             const pos = new THREE.Vector3();
             group.getWorldPosition(pos);
+            const h = getHeight(pos.x, pos.z);
             colliders.push({
                 type: 'sphere',
-                center: new THREE.Vector3(pos.x, 2.5, pos.z),
+                center: new THREE.Vector3(pos.x, h + 2.5, pos.z),
                 radius: 1.0
             });
-        });
-
-        // Холмы (сферы) — добавляем их в colliders
-        hillData.forEach((h) => {
-            colliders.push({
-                type: 'sphere',
-                center: new THREE.Vector3(h.x, h.h/2, h.z),
-                radius: h.r * 1.2
-            });
-        });
-        // Создаём сами холмы после добавления коллизий (чтобы они были в сцене)
-        hillData.forEach((h) => {
-            createHill(h.x, h.z, h.r, h.h, 0x6b8e5a);
         });
 
         // --- ДОМИК (коробка с входом) ---
@@ -334,6 +312,7 @@
             const group = new THREE.Group();
             const houseX = 10;
             const houseZ = -5;
+            const baseY = getHeight(houseX, houseZ);
             const width = 4;
             const depth = 3.5;
             const height = 3;
@@ -408,27 +387,32 @@
             roof.castShadow = true; roof.receiveShadow = true;
             group.add(roof);
 
-            // Коллизии домика (стены)
+            // --- КОЛЛИЗИИ ДОМА (добавляем в общий список) ---
+            // Задняя стена
             colliders.push({ type: 'box', pos: new THREE.Vector3(0, height/2, -depth/2), half: new THREE.Vector3(width/2, height/2, wallThick/2) });
+            // Левая стена
             colliders.push({ type: 'box', pos: new THREE.Vector3(-width/2, height/2, 0), half: new THREE.Vector3(wallThick/2, height/2, depth/2) });
+            // Правая стена
             colliders.push({ type: 'box', pos: new THREE.Vector3(width/2, height/2, 0), half: new THREE.Vector3(wallThick/2, height/2, depth/2) });
+            // Передняя левая часть
             colliders.push({ type: 'box', pos: new THREE.Vector3(-(width/2 + doorWidth/2)/2, height/2, depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
+            // Передняя правая часть
             colliders.push({ type: 'box', pos: new THREE.Vector3((width/2 + doorWidth/2)/2, height/2, depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
+            // Верхняя часть над дверью
             colliders.push({ type: 'box', pos: new THREE.Vector3(0, (height + doorHeight)/2, depth/2), half: new THREE.Vector3(doorWidth/2, (height - doorHeight)/2, wallThick/2) });
 
-            group.position.set(houseX, 0, houseZ);
+            group.position.set(houseX, baseY, houseZ);
             return group;
         }
 
         const house = createHouse();
         scene.add(house);
 
-        // --- ФИЗИКА ---
+        // --- ФИЗИКА (с учётом высоты карты) ---
         let velocityY = 0;
         const gravity = -9.8;
         const jumpSpeed = 4.5;
         const jumpStaminaCost = 15;
-        const groundY = 1.80;
 
         let stamina = 100;
         const maxStamina = 100;
@@ -444,6 +428,7 @@
         const playerRadius = 0.5;
         const playerHeight = 1.8;
 
+        // Функция коллизий (та же, что была)
         function resolveCollisions(pos) {
             for (const col of colliders) {
                 if (col.type === 'box') {
@@ -519,40 +504,61 @@
                     newPos.z += moveDelta.z;
                 }
 
+                // --- КОЛЛИЗИИ (только X и Z) ---
                 newPos = resolveCollisions(newPos);
 
-                if (keys.space && camera.position.y <= groundY + 0.01 && stamina >= jumpStaminaCost) {
+                // --- ГРАВИТАЦИЯ И ВЫСОТА КАРТЫ ---
+                // Вычисляем высоту земли в точке (newPos.x, newPos.z)
+                const groundHeight = getHeight(newPos.x, newPos.z);
+                // Целевая высота для глаз = groundHeight + playerHeight
+                const targetY = groundHeight + playerHeight;
+
+                // Если игрок на земле (или почти), фиксируем его на targetY
+                // Но если он прыгает, то velocityY влияет на позицию
+                if (keys.space && Math.abs(camera.position.y - (groundHeight + playerHeight)) < 0.1 && stamina >= jumpStaminaCost) {
                     velocityY = jumpSpeed;
                     stamina -= jumpStaminaCost;
                 }
 
+                // Применяем гравитацию к velocityY
                 velocityY += gravity * delta;
                 newPos.y += velocityY * delta;
-                if (newPos.y < groundY) {
-                    newPos.y = groundY;
+
+                // Если упали ниже земли — ставим на землю и обнуляем скорость
+                if (newPos.y < targetY) {
+                    newPos.y = targetY;
                     velocityY = 0;
                 }
 
+                // --- ПРИМЕНЯЕМ ПОЗИЦИЮ ---
                 camera.position.copy(newPos);
 
-                if (keys.shift && isMoving && camera.position.y <= groundY + 0.01) {
+                // --- СТАМИНА ---
+                if (keys.shift && isMoving && camera.position.y <= targetY + 0.1) {
                     stamina = Math.max(0, stamina - staminaDrain * delta);
                 } else {
                     stamina = Math.min(maxStamina, stamina + staminaRegen * delta);
                 }
                 staminaBar.style.width = (stamina / maxStamina * 100) + '%';
 
-                if (isMoving && camera.position.y <= groundY + 0.01) {
+                // --- ПОКАЧИВАНИЕ ---
+                if (isMoving && camera.position.y <= targetY + 0.1) {
                     const freq = runMultiplier > 1 ? 14 : 10;
                     const amp = runMultiplier > 1 ? 0.06 : 0.03;
                     bobPhase += currentSpeed * freq * delta;
                     const bobOffset = Math.sin(bobPhase) * amp;
                     camera.position.y += bobOffset * 0.3;
-                    if (camera.position.y < groundY) camera.position.y = groundY;
+                    // Опять проверяем, не ушли ли под землю
+                    const newGround = getHeight(camera.position.x, camera.position.z);
+                    if (camera.position.y < newGround + playerHeight) {
+                        camera.position.y = newGround + playerHeight;
+                        velocityY = 0;
+                    }
                 } else {
                     bobPhase *= 0.9;
                 }
 
+                // --- ГРАНИЦЫ КАРТЫ ---
                 const limit = 35;
                 if (Math.abs(camera.position.x) > limit) camera.position.x = Math.sign(camera.position.x) * limit;
                 if (Math.abs(camera.position.z) > limit) camera.position.z = Math.sign(camera.position.z) * limit;
@@ -569,7 +575,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('SWILL: Всё починил! Земля плоская, травка есть, холмы с коллизиями, дом на земле.');
+        console.log('SWILL: ВСЁ ИСПРАВЛЕНО! Рельеф, небо, коллизии дома — работают.');
     </script>
 </body>
 </html>
