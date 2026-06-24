@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>STALKER — ДВЕРЬ 3 МЕТРА (РАБОТАЕТ)</title>
+    <title>STALKER — ДОМ БЕЗ КОЛЛИЗИЙ ДВЕРИ</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #blocker {
@@ -248,16 +248,14 @@
             colliders.push({ type: 'sphere', center: new THREE.Vector3(pos.x, 2.5, pos.z), radius: 1.0 });
         });
 
-        // --- ДОМИК С ДВЕРЬЮ 3 МЕТРА (БЕЗ ВЕРХНЕГО КОЛЛАЙДЕРА) ---
+        // --- ДОМИК (коллизии ТОЛЬКО для задней, левой и правой стен) ---
         function createHouse() {
             const houseX = 10;
             const houseZ = -5;
-            const width = 5;        // увеличил ширину дома, чтобы дверь 3м влезла
+            const width = 5;
             const depth = 4;
             const height = 3;
             const wallThick = 0.15;
-            const doorWidth = 3.0;   // ШИРИНА 3 МЕТРА
-            const doorHeight = 2.8;  // почти во всю высоту
 
             const wallMat = new THREE.MeshStandardMaterial({
                 map: textures.stena || undefined,
@@ -276,32 +274,32 @@
             back.castShadow = true; back.receiveShadow = true;
             group.add(back);
 
-            // Левая
+            // Левая стена
             const left = new THREE.Mesh(new THREE.BoxGeometry(wallThick, height, depth), wallMat);
             left.position.set(-width/2, height/2, 0);
             left.castShadow = true; left.receiveShadow = true;
             group.add(left);
 
-            // Правая
+            // Правая стена
             const right = new THREE.Mesh(new THREE.BoxGeometry(wallThick, height, depth), wallMat);
             right.position.set(width/2, height/2, 0);
             right.castShadow = true; right.receiveShadow = true;
             group.add(right);
 
-            // Передняя левая часть
-            const fl = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
-            fl.position.set(-(width/2 + doorWidth/2)/2, height/2, depth/2);
+            // Передняя левая (визуальная, без коллизии)
+            const fl = new THREE.Mesh(new THREE.BoxGeometry((width - 3.0)/2, height, wallThick), wallMat);
+            fl.position.set(-(width/2 + 3.0/2)/2, height/2, depth/2);
             fl.castShadow = true; fl.receiveShadow = true;
             group.add(fl);
 
-            // Передняя правая часть
-            const fr = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
-            fr.position.set((width/2 + doorWidth/2)/2, height/2, depth/2);
+            // Передняя правая (визуальная, без коллизии)
+            const fr = new THREE.Mesh(new THREE.BoxGeometry((width - 3.0)/2, height, wallThick), wallMat);
+            fr.position.set((width/2 + 3.0/2)/2, height/2, depth/2);
             fr.castShadow = true; fr.receiveShadow = true;
             group.add(fr);
 
-            // Верхняя часть над дверью (делаем её очень тонкой по высоте, чтобы не мешать)
-            const topDoor = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, 0.1, wallThick), wallMat);
+            // Верхняя часть над дверью (визуальная, без коллизии)
+            const topDoor = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.1, wallThick), wallMat);
             topDoor.position.set(0, height, depth/2);
             topDoor.castShadow = true; topDoor.receiveShadow = true;
             group.add(topDoor);
@@ -320,27 +318,11 @@
 
             group.position.set(houseX, 0, houseZ);
 
-            // --- КОЛЛИЗИИ СТЕН (без верхнего коллайдера, только боковые и задняя) ---
-            // Задняя
+            // --- КОЛЛИЗИИ ТОЛЬКО ДЛЯ ЗАДНЕЙ, ЛЕВОЙ И ПРАВОЙ СТЕН ---
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX, height/2, houseZ - depth/2), half: new THREE.Vector3(width/2, height/2, wallThick/2) });
-            // Левая
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX - width/2, height/2, houseZ), half: new THREE.Vector3(wallThick/2, height/2, depth/2) });
-            // Правая
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX + width/2, height/2, houseZ), half: new THREE.Vector3(wallThick/2, height/2, depth/2) });
-            // Передняя левая
-            colliders.push({ type: 'box', pos: new THREE.Vector3(houseX - (width/2 + doorWidth/2)/2, height/2, houseZ + depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
-            // Передняя правая
-            colliders.push({ type: 'box', pos: new THREE.Vector3(houseX + (width/2 + doorWidth/2)/2, height/2, houseZ + depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
-            // Верхнюю часть НЕ ДОБАВЛЯЕМ, чтобы не было стены над дверью
-
-            // Вывод для отладки
-            console.log('Коллайдеры дома:');
-            console.log('Задняя стена: center=(%d, %d, %d), half=(%d, %d, %d)', houseX, height/2, houseZ - depth/2, width/2, height/2, wallThick/2);
-            console.log('Левая стена: center=(%d, %d, %d), half=(%d, %d, %d)', houseX - width/2, height/2, houseZ, wallThick/2, height/2, depth/2);
-            console.log('Правая стена: center=(%d, %d, %d), half=(%d, %d, %d)', houseX + width/2, height/2, houseZ, wallThick/2, height/2, depth/2);
-            console.log('Передняя левая: center=(%d, %d, %d), half=(%d, %d, %d)', houseX - (width/2 + doorWidth/2)/2, height/2, houseZ + depth/2, (width - doorWidth)/4, height/2, wallThick/2);
-            console.log('Передняя правая: center=(%d, %d, %d), half=(%d, %d, %d)', houseX + (width/2 + doorWidth/2)/2, height/2, houseZ + depth/2, (width - doorWidth)/4, height/2, wallThick/2);
-            console.log('Ширина двери: %d, проход свободен от X=%d до X=%d', doorWidth, houseX - doorWidth/2, houseX + doorWidth/2);
+            // Передние стены и верхняя часть НЕ ДОБАВЛЕНЫ в colliders
 
             return group;
         }
@@ -494,7 +476,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('SWILL: ДВЕРЬ 3 МЕТРА, ВХОД СВОБОДНЫЙ!');
+        console.log('SWILL: КОЛЛИЗИИ ДВЕРИ УБРАНЫ, ВХОД СВОБОДНЫЙ!');
     </script>
 </body>
 </html>
