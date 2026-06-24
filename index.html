@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>STALKER — ИСПРАВЛЕННОЕ ДВИЖЕНИЕ</title>
+    <title>STALKER — КОЛЛИЗИИ ИСПРАВЛЕНЫ</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #blocker {
@@ -228,19 +228,26 @@
             sky.position.y = 0; scene.add(sky);
         }
 
-        // --- ДЕРЕВЬЯ (крест-накрест) ---
+        // --- ДЕРЕВЬЯ (крест-накрест) с правильной группировкой ---
         function createCrossTree(texture, x, z, height = 5, width = 2.5) {
             if (!texture) return null;
             const mat = new THREE.MeshStandardMaterial({
                 map: texture, transparent: true, side: THREE.DoubleSide,
                 roughness: 0.8, metalness: 0.0, depthWrite: true
             });
+            // Создаём меши с локальными координатами (0, height/2, 0)
             const p1 = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
-            p1.position.set(x, height/2, z); p1.castShadow = true;
+            p1.position.set(0, height/2, 0);
+            p1.castShadow = true;
             const p2 = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
-            p2.position.set(x, height/2, z); p2.rotation.y = Math.PI/2; p2.castShadow = true;
+            p2.position.set(0, height/2, 0);
+            p2.rotation.y = Math.PI/2;
+            p2.castShadow = true;
+            // Группа с позицией (x, 0, z)
             const group = new THREE.Group();
-            group.add(p1); group.add(p2);
+            group.position.set(x, 0, z);
+            group.add(p1);
+            group.add(p2);
             return group;
         }
 
@@ -255,6 +262,7 @@
 
         // --- КОЛЛИЗИИ ---
         const colliders = [];
+
         // Стена (AABB)
         const wallPos = new THREE.Vector3(-5, 2, -8);
         const wallHalf = new THREE.Vector3(4, 2, 0.25);
@@ -263,13 +271,16 @@
             pos: wallPos,
             half: wallHalf
         });
-        // Деревья (сферы)
+
+        // Деревья (сферы) — теперь группа имеет правильную позицию
         treeGroups.forEach((group) => {
             const pos = new THREE.Vector3();
-            group.getWorldPosition(pos);
+            group.getWorldPosition(pos); // теперь это (x, 0, z)
+            // Центр сферы на высоте 2.5 м (половина высоты дерева)
+            const center = new THREE.Vector3(pos.x, 2.5, pos.z);
             colliders.push({
                 type: 'sphere',
-                center: new THREE.Vector3(pos.x, 2.5, pos.z),
+                center: center,
                 radius: 1.5
             });
         });
@@ -279,7 +290,6 @@
         const groundY = 1.80;
 
         function resolveCollisions(pos) {
-            // Проверяем только X и Z, Y корректируем отдельно
             for (const col of colliders) {
                 if (col.type === 'box') {
                     const half = col.half;
@@ -287,12 +297,10 @@
                     const dx = pos.x - center.x;
                     const dy = (pos.y - playerHeight/2) - center.y;
                     const dz = pos.z - center.z;
-                    // Для простоты корректируем X и Z как сферу против AABB
                     const closestX = Math.max(-half.x, Math.min(half.x, dx));
                     const closestZ = Math.max(-half.z, Math.min(half.z, dz));
                     const distX = dx - closestX;
                     const distZ = dz - closestZ;
-                    // Проверяем только горизонтальное расстояние
                     const distH = Math.sqrt(distX*distX + distZ*distZ);
                     if (distH < playerRadius && distH > 0.001) {
                         const overlap = playerRadius - distH;
@@ -380,10 +388,10 @@
                     newPos.z += moveDelta.z;
                 }
 
-                // --- КОЛЛИЗИИ (коррекция X и Z) ---
+                // --- КОЛЛИЗИИ ---
                 newPos = resolveCollisions(newPos);
 
-                // --- ГРАВИТАЦИЯ И ПРЫЖКИ ---
+                // --- ГРАВИТАЦИЯ ---
                 if (keys.space && camera.position.y <= groundY + 0.01) {
                     velocityY = jumpSpeed;
                 }
@@ -394,7 +402,6 @@
                     velocityY = 0;
                 }
 
-                // --- ПРИМЕНЯЕМ ПОЗИЦИЮ ---
                 camera.position.copy(newPos);
 
                 // --- СТАМИНА ---
@@ -405,7 +412,7 @@
                 }
                 staminaBar.style.width = (stamina / maxStamina * 100) + '%';
 
-                // --- ПОКАЧИВАНИЕ КАМЕРЫ (head bob) ---
+                // --- ПОКАЧИВАНИЕ ---
                 if (isMoving && camera.position.y <= groundY + 0.01) {
                     const freq = runMultiplier > 1 ? 14 : 10;
                     const amp = runMultiplier > 1 ? 0.06 : 0.03;
@@ -434,7 +441,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('SWILL: ДВИЖЕНИЕ ПОЧИНЕНО!');
+        console.log('SWILL: КОЛЛИЗИИ ДЕРЕВЬЕВ ИСПРАВЛЕНЫ, НЕВИДИМАЯ СТЕНА УБРАНА!');
     </script>
 </body>
 </html>
