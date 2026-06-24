@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>STALKER TEST — SWILL FIX</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STALKER TEST — БЕРЁЗА КРЕСТ</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #blocker {
@@ -47,7 +48,7 @@
         scene.background = new THREE.Color(0x1a2b3c);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.80, 5);
+        camera.position.set(0, 1.80, 5); // рост игрока 1.80
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -55,7 +56,7 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        // --- БЛОКИРОВКА ---
+        // --- БЛОКИРОВКА КУРСОРА ---
         const blocker = document.getElementById('blocker');
         blocker.addEventListener('click', () => renderer.domElement.requestPointerLock());
         document.addEventListener('pointerlockchange', () => {
@@ -123,13 +124,13 @@
             });
         }
 
+        // Только нужные текстуры: земля, трава, стена, небо, берёза (PNG)
         const texList = {
             zemla: 'zemla.jpg',
             trawa: 'trawa.jpg',
             stena: 'stena.jpg',
             nebo: 'nebo.jpg',
-            bereza: 'bereza.jpg', // можно JPG — код вырежет белый
-            elka: 'elka.jpg'      // можно JPG — код вырежет белый
+            bereza: 'bereza.png'   // новая правильная текстура
         };
 
         const loadPromises = Object.entries(texList).map(async ([key, file]) => {
@@ -141,98 +142,45 @@
         await Promise.all(loadPromises);
         console.log('SWILL: все текстуры загружены');
 
-        // --- УДАЛЕНИЕ БЕЛОГО ФОНА ИЗ КАРТИНКИ ---
-        function removeWhiteBackground(texture) {
-            if (!texture) return null;
-            const img = texture.image;
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                if (r > 230 && g > 230 && b > 230) {
-                    data[i + 3] = 0;
-                }
-            }
-            ctx.putImageData(imageData, 0, 0);
-            const newTex = new THREE.CanvasTexture(canvas);
-            newTex.needsUpdate = true;
-            return newTex;
-        }
+        // --- СОЗДАНИЕ МИРА ---
 
-        // --- ФУНКЦИЯ СОЗДАНИЯ ДЕРЕВА (УВЕЛИЧЕННАЯ В 2 РАЗА) ---
-        function createTree(texture, x, z, scale = 1.0) {
-            if (!texture) return null;
-            const cleanTex = removeWhiteBackground(texture);
-            if (!cleanTex) return null;
-            
-            const mat = new THREE.SpriteMaterial({
-                map: cleanTex,
-                transparent: true,
-                depthTest: true,
-                depthWrite: false,
-                opacity: 1.0
-            });
-            const sprite = new THREE.Sprite(mat);
-            // УВЕЛИЧИВАЕМ В 2 РАЗА
-            const finalScale = 2.5 * scale * 2;
-            sprite.position.set(x, 1.25, z);
-            sprite.scale.set(finalScale, finalScale, 1);
-            return sprite;
-        }
-
-        // --- МИР ---
+        // 1. ЗЕМЛЯ (основная)
         if (textures.zemla) {
-            const g = new THREE.Mesh(
+            const ground = new THREE.Mesh(
                 new THREE.PlaneGeometry(60, 60),
                 new THREE.MeshStandardMaterial({ map: textures.zemla, roughness: 0.8 })
             );
-            g.rotation.x = -Math.PI/2;
-            g.position.y = 0;
-            g.receiveShadow = true;
-            scene.add(g);
+            ground.rotation.x = -Math.PI/2;
+            ground.position.y = 0;
+            ground.receiveShadow = true;
+            scene.add(ground);
         }
 
+        // 2. ТРАВА (слой поверх, для разнообразия)
         if (textures.trawa) {
-            const g = new THREE.Mesh(
+            const grass = new THREE.Mesh(
                 new THREE.PlaneGeometry(20, 20),
                 new THREE.MeshStandardMaterial({ map: textures.trawa, roughness: 0.9 })
             );
-            g.rotation.x = -Math.PI/2;
-            g.position.set(0, 0.01, 0);
-            g.receiveShadow = true;
-            scene.add(g);
+            grass.rotation.x = -Math.PI/2;
+            grass.position.set(0, 0.01, 0);
+            grass.receiveShadow = true;
+            scene.add(grass);
         }
 
+        // 3. СТЕНА (тестовый объект)
         if (textures.stena) {
-            const w = new THREE.Mesh(
+            const wall = new THREE.Mesh(
                 new THREE.BoxGeometry(8, 4, 0.5),
                 new THREE.MeshStandardMaterial({ map: textures.stena, roughness: 0.7 })
             );
-            w.position.set(-5, 2, -8);
-            w.castShadow = true;
-            w.receiveShadow = true;
-            scene.add(w);
+            wall.position.set(-5, 2, -8);
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            scene.add(wall);
         }
 
-        // ДЕРЕВЬЯ (теперь без белого фона и УВЕЛИЧЕННЫЕ)
-        if (textures.bereza) {
-            scene.add(createTree(textures.bereza, -3, -2, 1.0));
-            scene.add(createTree(textures.bereza, 4, -3, 0.9));
-        }
-        if (textures.elka) {
-            scene.add(createTree(textures.elka, 2, 5, 1.1));
-            scene.add(createTree(textures.elka, -4, 4, 1.0));
-            scene.add(createTree(textures.elka, 6, 2, 0.8));
-        }
-
-        // НЕБО
+        // 4. НЕБО (сфера)
         if (textures.nebo) {
             const sky = new THREE.Mesh(
                 new THREE.SphereGeometry(200, 32, 32),
@@ -242,7 +190,56 @@
             scene.add(sky);
         }
 
-        console.log('SWILL: сцена готова, деревья увеличены в 2 раза, белый фон удалён');
+        // 5. ДЕРЕВЬЯ (КРЕСТ-НАКРЕСТ) — только берёза
+        function createCrossTree(texture, x, z, height = 5, width = 2.5) {
+            if (!texture) return null;
+
+            const mat = new THREE.MeshStandardMaterial({
+                map: texture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                roughness: 0.8,
+                metalness: 0.0,
+                depthWrite: true
+            });
+
+            // Первая плоскость (ось X)
+            const plane1 = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
+            plane1.position.set(x, height/2, z);
+            plane1.castShadow = true;
+            plane1.receiveShadow = false;
+
+            // Вторая плоскость (повёрнута на 90° по Y)
+            const plane2 = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
+            plane2.position.set(x, height/2, z);
+            plane2.rotation.y = Math.PI / 2;
+            plane2.castShadow = true;
+            plane2.receiveShadow = false;
+
+            // Группа для удобства
+            const group = new THREE.Group();
+            group.add(plane1);
+            group.add(plane2);
+            return group;
+        }
+
+        // Расставляем деревья (5 штук в разных местах)
+        if (textures.bereza) {
+            const positions = [
+                [-3, -2],
+                [4, -3],
+                [2, 5],
+                [-4, 4],
+                [6, 2]
+            ];
+            positions.forEach(([x, z]) => {
+                const tree = createCrossTree(textures.bereza, x, z, 5, 2.5);
+                if (tree) scene.add(tree);
+            });
+            console.log('SWILL: посажены берёзы крест-накрест, высота 5м');
+        } else {
+            console.warn('SWILL: текстура берёзы не загружена, деревьев нет');
+        }
 
         // --- АНИМАЦИЯ ---
         function animate() {
@@ -254,10 +251,10 @@
                 if (keys.s) dir.z += speed;
                 if (keys.a) dir.x -= speed;
                 if (keys.d) dir.x += speed;
-                
+
                 const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
                 camera.quaternion.setFromEuler(euler);
-                
+
                 if (dir.lengthSq() > 0) {
                     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
                     forward.y = 0; forward.normalize();
@@ -276,6 +273,8 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
+
+        console.log('SWILL: сцена готова, иди тестируй берёзы!');
     </script>
 </body>
 </html>
