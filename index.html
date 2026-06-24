@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>STALKER — ДОМ С ДВЕРЬЮ (РАБОТАЕТ)</title>
+    <title>STALKER — ДВЕРЬ 2.5 М</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #blocker {
@@ -171,7 +171,7 @@
             else console.warn(`Не загрузилась ${file}`);
         }));
 
-        // --- НЕБО (гарантированно) ---
+        // --- НЕБО ---
         if (textures.nebo) {
             const sky = new THREE.Mesh(
                 new THREE.SphereGeometry(200, 32, 32),
@@ -180,7 +180,6 @@
             sky.position.y = 0;
             scene.add(sky);
         } else {
-            // Заглушка
             const sky = new THREE.Mesh(
                 new THREE.SphereGeometry(200, 32, 32),
                 new THREE.MeshBasicMaterial({ color: 0x4a7b9d, side: THREE.BackSide })
@@ -236,20 +235,20 @@
             });
         }
 
-        // --- КОЛЛИЗИИ (общий массив) ---
+        // --- КОЛЛИЗИИ ---
         const colliders = [];
 
-        // Стена (тестовая)
+        // Стена тестовая
         colliders.push({ type: 'box', pos: new THREE.Vector3(-5, 2, -8), half: new THREE.Vector3(4, 2, 0.25) });
 
-        // Деревья (сферы)
+        // Деревья
         treeGroups.forEach((group) => {
             const pos = new THREE.Vector3();
             group.getWorldPosition(pos);
             colliders.push({ type: 'sphere', center: new THREE.Vector3(pos.x, 2.5, pos.z), radius: 1.0 });
         });
 
-        // --- ДОМИК С ШИРОКОЙ ДВЕРЬЮ (1.8 м) ---
+        // --- ДОМИК С ОГРОМНОЙ ДВЕРЬЮ (2.5 м) ---
         function createHouse() {
             const houseX = 10;
             const houseZ = -5;
@@ -257,8 +256,8 @@
             const depth = 3.5;
             const height = 3;
             const wallThick = 0.15;
-            const doorWidth = 1.8;   // УВЕЛИЧИЛ ДО 1.8
-            const doorHeight = 2.0;
+            const doorWidth = 2.5;   // ШИРИНА 2.5 М
+            const doorHeight = 2.5;  // ВЫСОТА 2.5 М (выше игрока)
 
             const wallMat = new THREE.MeshStandardMaterial({
                 map: textures.stena || undefined,
@@ -289,21 +288,21 @@
             right.castShadow = true; right.receiveShadow = true;
             group.add(right);
 
-            // Передняя левая (ширина = (width - doorWidth)/2)
+            // Передняя левая часть
             const fl = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
             fl.position.set(-(width/2 + doorWidth/2)/2, height/2, depth/2);
             fl.castShadow = true; fl.receiveShadow = true;
             group.add(fl);
 
-            // Передняя правая
+            // Передняя правая часть
             const fr = new THREE.Mesh(new THREE.BoxGeometry((width - doorWidth)/2, height, wallThick), wallMat);
             fr.position.set((width/2 + doorWidth/2)/2, height/2, depth/2);
             fr.castShadow = true; fr.receiveShadow = true;
             group.add(fr);
 
-            // Верхняя над дверью (тонкая)
-            const topDoor = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, 0.2, wallThick), wallMat);
-            topDoor.position.set(0, height, depth/2);
+            // Верхняя над дверью (тонкая, но высокая)
+            const topDoor = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, height - doorHeight, wallThick), wallMat);
+            topDoor.position.set(0, (height + doorHeight)/2, depth/2);
             topDoor.castShadow = true; topDoor.receiveShadow = true;
             group.add(topDoor);
 
@@ -321,7 +320,7 @@
 
             group.position.set(houseX, 0, houseZ);
 
-            // --- КОЛЛИЗИИ СТЕН (с учётом увеличенной двери) ---
+            // --- КОЛЛИЗИИ СТЕН (дверной проём 2.5 м) ---
             // Задняя
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX, height/2, houseZ - depth/2), half: new THREE.Vector3(width/2, height/2, wallThick/2) });
             // Левая
@@ -332,8 +331,8 @@
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX - (width/2 + doorWidth/2)/2, height/2, houseZ + depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
             // Передняя правая
             colliders.push({ type: 'box', pos: new THREE.Vector3(houseX + (width/2 + doorWidth/2)/2, height/2, houseZ + depth/2), half: new THREE.Vector3((width - doorWidth)/4, height/2, wallThick/2) });
-            // Верхняя над дверью (тонкая)
-            colliders.push({ type: 'box', pos: new THREE.Vector3(houseX, height, houseZ + depth/2), half: new THREE.Vector3(doorWidth/2, 0.1, wallThick/2) });
+            // Верхняя над дверью (тоже box, но высота = height - doorHeight)
+            colliders.push({ type: 'box', pos: new THREE.Vector3(houseX, (height + doorHeight)/2, houseZ + depth/2), half: new THREE.Vector3(doorWidth/2, (height - doorHeight)/2, wallThick/2) });
 
             return group;
         }
@@ -487,7 +486,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('SWILL: ДВЕРЬ ШИРИНОЙ 1.8 М — ЗАХОДИ СВОБОДНО!');
+        console.log('SWILL: ДВЕРЬ 2.5 М — ЗАХОДИ СВОБОДНО!');
     </script>
 </body>
 </html>
