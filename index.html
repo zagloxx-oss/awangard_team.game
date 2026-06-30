@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SWILL 3D ИГРА - СТАТИЧНЫЙ ГИДХАБ</title>
+    <title>SWILL 3D СТАБИЛЬНЫЙ ПИЗДЕЦ</title>
     <style>
         body {
             margin: 0;
@@ -42,10 +42,9 @@
     </style>
 </head>
 <body>
-    <div id="loading">SWILL ENGINE v3.0 ЗАГРУЗКА...</div>
-    <div id="info">SWILL 3D | <span>WASD</span> — движение | <span>Мышь</span> — осмотр | <span>Shift</span> — бег</div>
+    <div id="loading">SWILL STABLE ENGINE ЗАГРУЗКА...</div>
+    <div id="info">SWILL СТАБИЛЬНЫЙ | <span>WASD</span> — движение | <span>Мышь</span> — осмотр | <span>Shift</span> — бег</div>
 
-    <!-- Подключаем THREE.js с CDN -->
     <script type="importmap">
         {
             "imports": {
@@ -57,101 +56,82 @@
 
     <script type="module">
         // ---------------------------------------------------------------
-        // SWILL 3D - АБСОЛЮТНЫЙ ТРЁХМЕРНЫЙ ПИЗДЕЦ
-        // Дата: 30.06.2026
-        // ВСЕ ТЕКСТУРЫ ИЗ ПАПКИ textures
+        // SWILL СТАБИЛЬНЫЙ - БЕЗ ДРОЖАНИЯ И БЕЗ ПАЛОК
         // ---------------------------------------------------------------
         import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        // Инициализация сцены
+        // Инициализация
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // Небо голубое (будет заменено текстурой)
-        scene.fog = new THREE.Fog(0x87CEEB, 30, 80);
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 30, 60);
 
-        // Камера
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(10, 5, 15);
-        camera.lookAt(0, 0, 0);
-
-        // Рендерер
+        
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.shadowMap.bias = 0.0001;
         document.body.appendChild(renderer.domElement);
 
-        // Управление от первого лица
+        // Управление
         const controls = new PointerLockControls(camera, renderer.domElement);
-        
-        // Клик для захвата мыши
-        renderer.domElement.addEventListener('click', () => {
-            controls.lock();
-        });
+        renderer.domElement.addEventListener('click', () => controls.lock());
 
         // Свет
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        dirLight.position.set(20, 30, 10);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        dirLight.position.set(30, 40, 20);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.width = 2048;
         dirLight.shadow.mapSize.height = 2048;
-        dirLight.shadow.camera.near = 0.5;
-        dirLight.shadow.camera.far = 60;
-        dirLight.shadow.camera.left = -30;
-        dirLight.shadow.camera.right = 30;
-        dirLight.shadow.camera.top = 30;
-        dirLight.shadow.camera.bottom = -30;
+        dirLight.shadow.camera.near = 1;
+        dirLight.shadow.camera.far = 80;
+        dirLight.shadow.camera.left = -40;
+        dirLight.shadow.camera.right = 40;
+        dirLight.shadow.camera.top = 40;
+        dirLight.shadow.camera.bottom = -40;
         scene.add(dirLight);
-
-        const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x3a7d44, 0.4);
-        scene.add(hemiLight);
 
         // Загрузка текстур
         const textureLoader = new THREE.TextureLoader();
         const textures = {};
-
-        function loadTextures() {
+        
+        // ВСЕ ТЕКСТУРЫ НАХУЙ
+        const textureNames = ['stena', 'stena2', 'trawa', 'trawa2', 'zemla', 'zemla2', 'dpol', 'nebo', 'bereza'];
+        
+        function loadAllTextures() {
             return new Promise((resolve) => {
-                const textureList = [
-                    'stena.jpg', 'stena2.jpg', 'trawa.jpg', 'trawa2.jpg',
-                    'zemla.jpg', 'zemla2.jpg', 'dpol.jpg', 'nebo.jpg', 'bereza.png'
-                ];
-                
                 let loaded = 0;
-                const total = textureList.length;
-
-                textureList.forEach((name) => {
-                    const key = name.split('.')[0];
+                const total = textureNames.length;
+                
+                textureNames.forEach(name => {
+                    const ext = name === 'bereza' ? 'png' : 'jpg';
                     textureLoader.load(
-                        `textures/${name}`,
+                        `textures/${name}.${ext}`,
                         (texture) => {
-                            textures[key] = texture;
+                            textures[name] = texture;
                             loaded++;
                             if (loaded === total) resolve();
                         },
                         undefined,
                         () => {
-                            // Если не загрузилось - создаём заглушку
-                            console.warn(`SWILL: Не загрузилась ${name}, создаю заглушку`);
+                            // Заглушка
+                            console.warn(`SWILL: ${name} не загрузилась`);
                             const canvas = document.createElement('canvas');
                             canvas.width = 256;
                             canvas.height = 256;
                             const ctx = canvas.getContext('2d');
-                            ctx.fillStyle = `#${Math.floor(Math.random()*16777215).toString(16)}`;
+                            ctx.fillStyle = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
                             ctx.fillRect(0, 0, 256, 256);
-                            ctx.strokeStyle = '#000';
-                            ctx.lineWidth = 5;
-                            ctx.strokeRect(0, 0, 256, 256);
                             ctx.fillStyle = '#fff';
-                            ctx.font = '24px monospace';
-                            ctx.fillText(key, 50, 130);
-                            const fakeTexture = new THREE.CanvasTexture(canvas);
-                            textures[key] = fakeTexture;
+                            ctx.font = '30px monospace';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(name, 128, 128);
+                            textures[name] = new THREE.CanvasTexture(canvas);
                             loaded++;
                             if (loaded === total) resolve();
                         }
@@ -160,166 +140,109 @@
             });
         }
 
-        // Создание мира
-        function createWorld() {
+        // Создание мира СТАБИЛЬНОГО
+        function createStableWorld() {
             const group = new THREE.Group();
-            
-            // Размеры мира
-            const worldSize = 30;
+            const worldSize = 40;
             const tileSize = 2;
             const halfWorld = worldSize / 2;
-
-            // Массив для коллизий
+            
             const collisionObjects = [];
 
             // Генерация карты
-            for (let x = -halfWorld; x < halfWorld; x++) {
-                for (let z = -halfWorld; z < halfWorld; z++) {
-                    // Случайный выбор текстур
-                    let textureKey;
+            for (let x = -halfWorld; x < halfWorld; x += tileSize) {
+                for (let z = -halfWorld; z < halfWorld; z += tileSize) {
+                    let textureKey = 'trawa'; // По умолчанию трава
                     let isWall = false;
-                    let isTree = false;
-                    let isFloor = false;
-
-                    // Создаём структуру: стены, пол, траву, деревья
+                    
+                    // Рандомные структуры
                     const rand = Math.random();
                     
-                    // Центральная область - земля с травой
-                    if (Math.abs(x) < 8 && Math.abs(z) < 8) {
+                    // Создаём стены в центре
+                    if (Math.abs(x) < 6 && Math.abs(z) < 6) {
                         if (Math.abs(x) < 3 && Math.abs(z) < 3) {
-                            // Внутренний дворик - деревянный пол
+                            // Внутренний дворик - пол
                             textureKey = 'dpol';
-                            isFloor = true;
-                        } else if ((Math.abs(x) < 4 && Math.abs(z) < 4) && (Math.abs(x) > 2 || Math.abs(z) > 2)) {
-                            // Стены вокруг дворика
+                        } else if ((Math.abs(x) < 4.5 && Math.abs(z) < 4.5) && (Math.abs(x) > 2.5 || Math.abs(z) > 2.5)) {
                             textureKey = Math.random() > 0.5 ? 'stena' : 'stena2';
                             isWall = true;
                         } else {
-                            // Земля с травой
                             textureKey = Math.random() > 0.5 ? 'trawa' : 'trawa2';
                         }
+                    } else if (Math.abs(x) < 10 && Math.abs(z) < 10) {
+                        // Земляные тропинки вокруг
+                        textureKey = Math.random() > 0.5 ? 'zemla' : 'zemla2';
                     } else {
-                        // Остальная территория - трава и земля
+                        // Остальное - трава
                         textureKey = Math.random() > 0.5 ? 'trawa' : 'trawa2';
-                        // Иногда земляные тропинки
-                        if (Math.random() < 0.2) {
-                            textureKey = Math.random() > 0.5 ? 'zemla' : 'zemla2';
-                        }
                     }
 
-                    // Деревья (берёзы) с LOD
-                    if (Math.random() < 0.08 && !isWall && !isFloor) {
-                        isTree = true;
-                        // Создаём берёзу
-                        const treeGroup = createTree(x, z);
-                        group.add(treeGroup);
-                        collisionObjects.push({ x, z, radius: 0.8 });
-                    }
-
-                    // Создаём пол
-                    const geometry = new THREE.BoxGeometry(tileSize, 0.2, tileSize);
+                    // СОЗДАЁМ ТОЛЬКО ПЛОСКИЕ ТЕКСТУРКИ НА ЗЕМЛЕ
+                    const geometry = new THREE.PlaneGeometry(tileSize - 0.05, tileSize - 0.05);
                     const material = new THREE.MeshStandardMaterial({
                         map: textures[textureKey] || textures['trawa'],
                         roughness: 0.8,
-                        metalness: 0.1
+                        metalness: 0.1,
+                        side: THREE.DoubleSide
                     });
+                    
                     const tile = new THREE.Mesh(geometry, material);
-                    tile.position.set(x, -0.1, z);
+                    tile.rotation.x = -Math.PI / 2; // Кладём на землю
+                    tile.position.set(x, 0.01, z); // Чуть выше, чтобы не пересекалось
                     tile.receiveShadow = true;
                     tile.castShadow = false;
                     group.add(tile);
 
-                    // Если стена - добавляем надстройку
+                    // Коллизия для стен (но не для текстур!)
                     if (isWall) {
-                        const wallGeom = new THREE.BoxGeometry(tileSize, 2, tileSize);
-                        const wallMat = new THREE.MeshStandardMaterial({
-                            map: textures[textureKey],
-                            roughness: 0.9,
-                            metalness: 0.1
+                        // Добавляем коллизию, но без видимой стены
+                        collisionObjects.push({ 
+                            x: x, 
+                            z: z, 
+                            radius: 0.9,
+                            isWall: true 
                         });
-                        const wall = new THREE.Mesh(wallGeom, wallMat);
-                        wall.position.set(x, 1, z);
-                        wall.castShadow = true;
-                        wall.receiveShadow = true;
-                        group.add(wall);
-                        collisionObjects.push({ x, z, radius: 0.9, height: 2 });
+                    }
+
+                    // БЕРЁЗЫ - только коллизия без палок
+                    if (rand < 0.05 && !isWall && Math.abs(x) > 6 && Math.abs(z) > 6) {
+                        collisionObjects.push({
+                            x: x,
+                            z: z,
+                            radius: 0.7,
+                            isTree: true
+                        });
+                        
+                        // Оставляем просто текстуру берёзы на земле (как листья)
+                        if (textures['bereza']) {
+                            const leafGeom = new THREE.PlaneGeometry(1.5, 1.5);
+                            const leafMat = new THREE.MeshStandardMaterial({
+                                map: textures['bereza'],
+                                transparent: true,
+                                side: THREE.DoubleSide,
+                                roughness: 0.8
+                            });
+                            const leaf = new THREE.Mesh(leafGeom, leafMat);
+                            leaf.rotation.x = -Math.PI / 2;
+                            leaf.position.set(x, 0.02, z);
+                            leaf.receiveShadow = true;
+                            group.add(leaf);
+                        }
                     }
                 }
             }
 
-            // Небо (большой купол с текстурой)
-            const skyGeom = new THREE.SphereGeometry(80, 32, 32);
+            // НЕБО - большой купол
+            const skyGeom = new THREE.SphereGeometry(70, 32, 32);
             const skyMat = new THREE.MeshBasicMaterial({
                 map: textures['nebo'] || textures['trawa'],
                 side: THREE.BackSide
             });
             const sky = new THREE.Mesh(skyGeom, skyMat);
-            sky.position.y = 20;
+            sky.position.y = 15;
             group.add(sky);
 
             return { group, collisionObjects };
-        }
-
-        // Создание дерева с LOD
-        function createTree(x, z) {
-            const treeGroup = new THREE.Group();
-            
-            // Ствол (берёза)
-            const trunkGeom = new THREE.CylinderGeometry(0.15, 0.2, 2, 8);
-            const trunkMat = new THREE.MeshStandardMaterial({
-                color: 0x8B7355,
-                roughness: 0.9
-            });
-            const trunk = new THREE.Mesh(trunkGeom, trunkMat);
-            trunk.position.y = 1;
-            trunk.castShadow = true;
-            trunk.receiveShadow = true;
-            treeGroup.add(trunk);
-
-            // Крона - крест-накрест с текстурой берёзы
-            const leafMat = new THREE.MeshStandardMaterial({
-                map: textures['bereza'],
-                transparent: true,
-                side: THREE.DoubleSide,
-                roughness: 0.7
-            });
-
-            // Первый крест
-            const leafGeom1 = new THREE.PlaneGeometry(2, 2);
-            const leaf1 = new THREE.Mesh(leafGeom1, leafMat);
-            leaf1.position.y = 2.5;
-            leaf1.rotation.y = 0;
-            leaf1.castShadow = true;
-            leaf1.receiveShadow = true;
-            treeGroup.add(leaf1);
-
-            // Второй крест
-            const leafGeom2 = new THREE.PlaneGeometry(2, 2);
-            const leaf2 = new THREE.Mesh(leafGeom2, leafMat);
-            leaf2.position.y = 2.5;
-            leaf2.rotation.y = Math.PI / 2;
-            leaf2.castShadow = true;
-            leaf2.receiveShadow = true;
-            treeGroup.add(leaf2);
-
-            // LOD: при отдалении заменяем на простой спрайт
-            // Используем трюк с видимостью в зависимости от расстояния
-            treeGroup.userData = {
-                distanceCheck: (camPos) => {
-                    const dist = camPos.distanceTo(new THREE.Vector3(x, 0, z));
-                    // На расстоянии > 15 метров убираем кресты, оставляем просто текстуру на плоскости
-                    if (dist > 15) {
-                        leaf1.visible = false;
-                        leaf2.visible = false;
-                    } else {
-                        leaf1.visible = true;
-                        leaf2.visible = true;
-                    }
-                }
-            };
-
-            treeGroup.position.set(x, 0, z);
-            return treeGroup;
         }
 
         // Проверка коллизий
@@ -336,74 +259,63 @@
             return false;
         }
 
-        // Основной код
+        // Запуск игры
         async function init() {
-            // Загружаем текстуры
             document.getElementById('loading').textContent = 'SWILL: ЗАГРУЗКА ТЕКСТУР...';
-            await loadTextures();
+            await loadAllTextures();
             
             document.getElementById('loading').textContent = 'SWILL: СОЗДАНИЕ МИРА...';
             
-            // Создаём мир
-            const { group, collisionObjects } = createWorld();
+            const { group, collisionObjects } = createStableWorld();
             scene.add(group);
 
-            // Добавляем игрока (куб для наглядности)
-            const playerGeom = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-            const playerMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-            const playerMesh = new THREE.Mesh(playerGeom, playerMat);
-            playerMesh.position.set(0, 0.4, 0);
-            playerMesh.castShadow = true;
-            scene.add(playerMesh);
+            // Игрок
+            const playerGeom = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+            const playerMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x440000 });
+            const player = new THREE.Mesh(playerGeom, playerMat);
+            player.position.set(0, 0.3, 0);
+            player.castShadow = true;
+            scene.add(player);
 
-            // Управление движением
+            // Управление
             const keys = {};
             document.addEventListener('keydown', (e) => keys[e.code] = true);
             document.addEventListener('keyup', (e) => keys[e.code] = false);
 
-            // Скрываем загрузку
             document.getElementById('loading').style.display = 'none';
 
-            // Основной цикл
+            // Игровой цикл
             function animate() {
                 requestAnimationFrame(animate);
 
-                // Движение игрока
-                const speed = keys['ShiftLeft'] ? 0.15 : 0.05;
-                const direction = new THREE.Vector3();
-                camera.getWorldDirection(direction);
-                direction.y = 0;
-                direction.normalize();
+                // Движение
+                const speed = keys['ShiftLeft'] || keys['ShiftRight'] ? 0.12 : 0.04;
+                const dir = new THREE.Vector3();
+                camera.getWorldDirection(dir);
+                dir.y = 0;
+                dir.normalize();
 
                 const right = new THREE.Vector3();
-                right.crossVectors(direction, new THREE.Vector3(0, 1, 0)).normalize();
+                right.crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize();
 
-                const newPos = playerMesh.position.clone();
+                const newPos = player.position.clone();
 
-                if (keys['KeyW']) newPos.add(direction.clone().multiplyScalar(speed));
-                if (keys['KeyS']) newPos.sub(direction.clone().multiplyScalar(speed));
+                if (keys['KeyW']) newPos.add(dir.clone().multiplyScalar(speed));
+                if (keys['KeyS']) newPos.sub(dir.clone().multiplyScalar(speed));
                 if (keys['KeyA']) newPos.sub(right.clone().multiplyScalar(speed));
                 if (keys['KeyD']) newPos.add(right.clone().multiplyScalar(speed));
 
                 // Коллизия
                 if (!checkCollision(newPos, collisionObjects)) {
-                    playerMesh.position.copy(newPos);
+                    player.position.copy(newPos);
                     camera.position.copy(newPos.clone().add(new THREE.Vector3(0, 2, 0)));
                 }
-
-                // Обновление LOD для деревьев
-                group.children.forEach(child => {
-                    if (child.userData && child.userData.distanceCheck) {
-                        child.userData.distanceCheck(camera.position);
-                    }
-                });
 
                 renderer.render(scene, camera);
             }
 
             animate();
 
-            // Обработка изменения размера окна
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
@@ -411,10 +323,9 @@
             });
         }
 
-        // Запуск
         init().catch(err => {
             console.error('SWILL ОШИБКА:', err);
-            document.getElementById('loading').textContent = 'SWILL: ОШИБКА! СМОТРИ КОНСОЛЬ';
+            document.getElementById('loading').textContent = 'SWILL: ОШИБКА!';
         });
 
     </script>
