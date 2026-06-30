@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SWILL 3D - КРЕСТ НА КРЕСТ</title>
+    <title>SWILL ДОМИК И ДЕРЕВЬЯ</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
         #info {
@@ -21,7 +21,7 @@
     </style>
 </head>
 <body>
-    <div id="loading">SWILL 3D - КРЕСТ НА КРЕСТ<br>ЗАГРУЗКА...</div>
+    <div id="loading">SWILL ДОМИК<br>ЗАГРУЗКА...</div>
     <div id="info"><span>WASD</span> — движение | <span>Мышь</span> — осмотр | <span>Shift</span> — бег</div>
 
     <script type="importmap">
@@ -40,12 +40,12 @@
         // === ИНИЦИАЛИЗАЦИЯ ===
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87CEEB);
-        scene.fog = new THREE.Fog(0x87CEEB, 30, 60);
+        scene.fog = new THREE.Fog(0x87CEEB, 40, 80);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
-        camera.position.set(10, 5, 15);
+        camera.position.set(8, 5, 12);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -57,7 +57,7 @@
         // === СВЕТ ===
         const ambient = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambient);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
         dirLight.position.set(30, 40, 20);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.width = 2048;
@@ -103,116 +103,153 @@
             });
         }
 
-        // === СОЗДАНИЕ МИРА ===
+        // === ПОСТРОЕНИЕ МИРА ===
         function buildWorld() {
             const group = new THREE.Group();
             const collisionObjects = [];
 
-            // 1. ЗЕМЛЯ — ОДНА БОЛЬШАЯ ТЕКСТУРА
-            const groundGeom = new THREE.PlaneGeometry(80, 80);
+            // 1. ЗЕМЛЯ (большая плоскость)
             const groundMat = new THREE.MeshStandardMaterial({
-                map: textures['trawa'] || textures['trawa2'] || textures['zemla'],
+                map: textures['trawa'] || textures['trawa2'],
                 roughness: 0.9,
                 metalness: 0.0,
                 side: THREE.DoubleSide
             });
-            const ground = new THREE.Mesh(groundGeom, groundMat);
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.position.y = 0;
             ground.receiveShadow = true;
             group.add(ground);
 
-            // 2. СТЕНЫ — 3D КУБЫ
-            const wallPositions = [
-                { x: -4, z: -4 }, { x: 0, z: -4 }, { x: 4, z: -4 },
-                { x: -4, z: 0 }, { x: 4, z: 0 },
-                { x: -4, z: 4 }, { x: 0, z: 4 }, { x: 4, z: 4 }
-            ];
-            wallPositions.forEach((pos, i) => {
-                const texKey = i % 2 === 0 ? 'stena' : 'stena2';
-                const wallMat = new THREE.MeshStandardMaterial({
-                    map: textures[texKey],
-                    roughness: 0.8,
-                    metalness: 0.1
-                });
-                const wallGeom = new THREE.BoxGeometry(1.8, 2.5, 1.8);
-                const wall = new THREE.Mesh(wallGeom, wallMat);
-                wall.position.set(pos.x, 1.25, pos.z);
-                wall.castShadow = true;
-                wall.receiveShadow = true;
-                group.add(wall);
-                collisionObjects.push({
-                    type: 'box',
-                    x: pos.x, z: pos.z,
-                    radius: 1.3
-                });
+            // 2. ДОМИК (не кубы, а полноценный дом)
+            const houseGroup = new THREE.Group();
+            const wallHeight = 2.5;
+            const wallWidth = 0.2;
+            const houseSize = 4; // ширина и глубина
+
+            // Функция создания стены с текстурой
+            function createWall(w, h, d, tex, x, y, z) {
+                const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8, metalness: 0.1 });
+                const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+                mesh.position.set(x, y, z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                return mesh;
+            }
+
+            // Стены (передняя, задняя, левая, правая)
+            // Передняя стена (Z = +2) с дверным проёмом (пропуск)
+            const frontWall = createWall(houseSize, wallHeight, wallWidth, textures['stena'], 0, wallHeight/2, houseSize/2);
+            // Вырезаем дверь: просто не ставим центральный кусок, или можно сделать два куска по бокам
+            // Проще поставить две половинки
+            const doorWidth = 1.2;
+            const leftDoor = createWall((houseSize - doorWidth)/2, wallHeight, wallWidth, textures['stena'], -(doorWidth/2 + (houseSize - doorWidth)/4), wallHeight/2, houseSize/2);
+            const rightDoor = createWall((houseSize - doorWidth)/2, wallHeight, wallWidth, textures['stena'], (doorWidth/2 + (houseSize - doorWidth)/4), wallHeight/2, houseSize/2);
+            houseGroup.add(leftDoor);
+            houseGroup.add(rightDoor);
+            // Задняя стена
+            const backWall = createWall(houseSize, wallHeight, wallWidth, textures['stena2'], 0, wallHeight/2, -houseSize/2);
+            houseGroup.add(backWall);
+            // Левая стена
+            const leftWall = createWall(wallWidth, wallHeight, houseSize, textures['stena'], -houseSize/2, wallHeight/2, 0);
+            houseGroup.add(leftWall);
+            // Правая стена
+            const rightWall = createWall(wallWidth, wallHeight, houseSize, textures['stena2'], houseSize/2, wallHeight/2, 0);
+            houseGroup.add(rightWall);
+
+            // Пол внутри дома (текстура dpol)
+            const floorMat = new THREE.MeshStandardMaterial({ map: textures['dpol'], roughness: 0.6, metalness: 0.1 });
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(houseSize - 0.4, houseSize - 0.4), floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(0, 0.02, 0);
+            floor.receiveShadow = true;
+            houseGroup.add(floor);
+
+            // Крыша — два ската из треугольных призм (используем цилиндр с 3 сегментами или конус)
+            // Проще сделать две наклонные плоскости
+            const roofMat = new THREE.MeshStandardMaterial({ map: textures['dpol'], roughness: 0.7, metalness: 0.1, side: THREE.DoubleSide });
+            const roofWidth = houseSize + 0.8;
+            const roofHeight = 1.8;
+            // Скат 1 (передний)
+            const slopeGeom = new THREE.BoxGeometry(roofWidth, 0.1, roofHeight);
+            const slope1 = new THREE.Mesh(slopeGeom, roofMat);
+            slope1.position.set(0, wallHeight + roofHeight/2 - 0.1, 0.5);
+            slope1.rotation.x = 0.4; // наклон
+            slope1.castShadow = true;
+            slope1.receiveShadow = true;
+            houseGroup.add(slope1);
+            // Скат 2 (задний)
+            const slope2 = new THREE.Mesh(slopeGeom, roofMat);
+            slope2.position.set(0, wallHeight + roofHeight/2 - 0.1, -0.5);
+            slope2.rotation.x = -0.4;
+            slope2.castShadow = true;
+            slope2.receiveShadow = true;
+            houseGroup.add(slope2);
+            // Конёк
+            const ridgeMat = new THREE.MeshStandardMaterial({ map: textures['dpol'], roughness: 0.7 });
+            const ridge = new THREE.Mesh(new THREE.BoxGeometry(roofWidth, 0.2, 0.2), ridgeMat);
+            ridge.position.set(0, wallHeight + roofHeight - 0.1, 0);
+            ridge.castShadow = true;
+            houseGroup.add(ridge);
+
+            // Добавляем коллизию для стен дома (прямоугольники)
+            // Просто добавим несколько сфер для простоты
+            const houseCollisionRadius = 2.5;
+            collisionObjects.push({
+                type: 'sphere',
+                x: 0, z: 0,
+                radius: houseCollisionRadius
             });
 
-            // 3. ДЕРЕВЬЯ — КРЕСТ НА КРЕСТ ИЗ ДВУХ ПЛОСКОСТЕЙ
-            function createTreeSprite(x, z) {
-                const groupTree = new THREE.Group();
+            houseGroup.position.set(0, 0, 0);
+            group.add(houseGroup);
+
+            // 3. ДЕРЕВЬЯ (крест-накрест, высота минимум 2.5, по факту 3.5)
+            function createTree(x, z) {
+                const g = new THREE.Group();
                 const mat = new THREE.MeshStandardMaterial({
                     map: textures['bereza'],
                     transparent: true,
                     side: THREE.DoubleSide,
                     roughness: 0.6,
                     metalness: 0.0,
-                    alphaTest: 0.1 // чтобы не было артефактов
+                    alphaTest: 0.1
                 });
-                const geom = new THREE.PlaneGeometry(3, 3);
-                // Первая плоскость
-                const plane1 = new THREE.Mesh(geom, mat);
-                plane1.position.y = 1.5;
-                plane1.castShadow = true;
-                plane1.receiveShadow = true;
-                groupTree.add(plane1);
-                // Вторая плоскость — повёрнута на 90°
-                const plane2 = new THREE.Mesh(geom, mat);
-                plane2.rotation.y = Math.PI / 2;
-                plane2.position.y = 1.5;
-                plane2.castShadow = true;
-                plane2.receiveShadow = true;
-                groupTree.add(plane2);
-
-                groupTree.position.set(x, 0, z);
-                return groupTree;
+                const size = 3.5; // высота и ширина
+                const geom = new THREE.PlaneGeometry(size, size);
+                const p1 = new THREE.Mesh(geom, mat);
+                p1.position.y = size/2; // поднимаем, чтобы низ был на уровне земли
+                p1.castShadow = true;
+                p1.receiveShadow = true;
+                g.add(p1);
+                const p2 = new THREE.Mesh(geom, mat);
+                p2.rotation.y = Math.PI / 2;
+                p2.position.y = size/2;
+                p2.castShadow = true;
+                p2.receiveShadow = true;
+                g.add(p2);
+                g.position.set(x, 0, z);
+                return g;
             }
 
             const treePositions = [
-                { x: -10, z: -10 }, { x: 12, z: -8 }, { x: -8, z: 12 },
-                { x: 15, z: 10 }, { x: -15, z: -5 }, { x: 5, z: -15 },
-                { x: -12, z: 5 }, { x: 8, z: -12 }
+                { x: -8, z: -8 }, { x: 10, z: -6 }, { x: -6, z: 10 },
+                { x: 12, z: 8 }, { x: -12, z: 4 }, { x: 6, z: -12 },
+                { x: -10, z: -12 }, { x: 14, z: -10 }
             ];
             treePositions.forEach(pos => {
-                const tree = createTreeSprite(pos.x, pos.z);
+                const tree = createTree(pos.x, pos.z);
                 group.add(tree);
                 collisionObjects.push({
                     type: 'sphere',
                     x: pos.x, z: pos.z,
-                    radius: 1.8
+                    radius: 2.0 // коллизия вокруг дерева
                 });
             });
 
-            // 4. ПОЛ ВНУТРИ КОМНАТЫ
-            const floorMat = new THREE.MeshStandardMaterial({
-                map: textures['dpol'],
-                roughness: 0.6,
-                metalness: 0.1
-            });
-            const floorGeom = new THREE.PlaneGeometry(3.5, 3.5);
-            const floor = new THREE.Mesh(floorGeom, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.set(0, 0.02, 0);
-            floor.receiveShadow = true;
-            group.add(floor);
-
-            // 5. НЕБО
-            const skyGeom = new THREE.SphereGeometry(70, 32, 32);
-            const skyMat = new THREE.MeshBasicMaterial({
-                map: textures['nebo'],
-                side: THREE.BackSide
-            });
-            const sky = new THREE.Mesh(skyGeom, skyMat);
+            // 4. НЕБО
+            const skyMat = new THREE.MeshBasicMaterial({ map: textures['nebo'], side: THREE.BackSide });
+            const sky = new THREE.Mesh(new THREE.SphereGeometry(70, 32, 32), skyMat);
             sky.position.y = 10;
             group.add(sky);
 
@@ -233,18 +270,19 @@
 
         // === ЗАПУСК ===
         async function init() {
-            document.getElementById('loading').textContent = 'SWILL 3D - КРЕСТ НА КРЕСТ\nЗАГРУЗКА ТЕКСТУР...';
+            document.getElementById('loading').textContent = 'SWILL ДОМИК\nЗАГРУЗКА ТЕКСТУР...';
             await loadAll();
 
-            document.getElementById('loading').textContent = 'SWILL 3D - КРЕСТ НА КРЕСТ\nСТРОЮ МИР...';
+            document.getElementById('loading').textContent = 'SWILL ДОМИК\nСТРОЮ МИР...';
             const { group, collisionObjects } = buildWorld();
             scene.add(group);
 
-            // Игрок
-            const playerGeom = new THREE.BoxGeometry(0.8, 1.6, 0.8);
-            const playerMat = new THREE.MeshStandardMaterial({ color: 0xff3366, emissive: 0x440011 });
-            const player = new THREE.Mesh(playerGeom, playerMat);
-            player.position.set(0, 0.8, 5);
+            // Игрок (рост 1.8)
+            const player = new THREE.Mesh(
+                new THREE.BoxGeometry(0.8, 1.8, 0.8),
+                new THREE.MeshStandardMaterial({ color: 0xff3366, emissive: 0x440011 })
+            );
+            player.position.set(0, 0.9, 6);
             player.castShadow = true;
             scene.add(player);
 
@@ -272,13 +310,13 @@
 
                 if (!checkCollision(newPos, collisionObjects)) {
                     player.position.copy(newPos);
-                    camera.position.copy(newPos.clone().add(new THREE.Vector3(0, 2, 0)));
+                    camera.position.copy(newPos.clone().add(new THREE.Vector3(0, 1.6, 0)));
                 } else {
                     if (keys['KeyW']) player.position.sub(dir.clone().multiplyScalar(speed*0.5));
                     if (keys['KeyS']) player.position.add(dir.clone().multiplyScalar(speed*0.5));
                     if (keys['KeyA']) player.position.add(right.clone().multiplyScalar(speed*0.5));
                     if (keys['KeyD']) player.position.sub(right.clone().multiplyScalar(speed*0.5));
-                    camera.position.copy(player.position.clone().add(new THREE.Vector3(0, 2, 0)));
+                    camera.position.copy(player.position.clone().add(new THREE.Vector3(0, 1.6, 0)));
                 }
 
                 renderer.render(scene, camera);
