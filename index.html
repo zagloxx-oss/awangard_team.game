@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактор миров 5.1</title>
+    <title>Редактор миров</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{overflow:hidden;font-family:'Segoe UI',sans-serif;background:#1a1a2e;color:#fff}
         #container{display:flex;width:100vw;height:100vh}
         #canvas-wrap{flex:1;position:relative}
         #canvas-wrap canvas{display:block;width:100%;height:100%}
-        /* Правая панель */
-        #panel{width:260px;background:rgba(20,20,36,0.95);backdrop-filter:blur(10px);border-left:1px solid rgba(255,255,255,0.06);padding:16px 12px;overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;gap:12px}
-        #panel h2{font-size:16px;font-weight:400;color:#aaa;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px;margin-bottom:4px}
+        #panel{width:280px;background:rgba(20,20,36,0.95);backdrop-filter:blur(10px);border-left:1px solid rgba(255,255,255,0.06);padding:16px 14px;overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;gap:10px}
+        #panel h2{font-size:16px;font-weight:400;color:#aaa;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px;margin-bottom:2px}
         #panel .category{background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px}
-        #panel .category .title{font-size:13px;font-weight:500;color:#ccc;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+        #panel .category .title{font-size:13px;font-weight:500;color:#ccc;margin-bottom:4px;display:flex;align-items:center;gap:6px}
         #panel .category .items{display:flex;flex-wrap:wrap;gap:4px}
         #panel .category .items button{background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 10px;border-radius:16px;font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap;border:1px solid transparent}
         #panel .category .items button:hover{background:rgba(255,255,255,0.15)}
@@ -33,7 +32,6 @@
         #panel .category .items button.col-btn.active{background:#6c5ce7;border-color:#6c5ce7}
         #panel .category .items button.trans-btn{background:rgba(255,255,255,0.04);padding:4px 12px}
         #panel .category .items button.trans-btn.active{background:#6c5ce7;border-color:#6c5ce7}
-        /* Верхняя плашка */
         #topbar{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(10,10,20,0.7);backdrop-filter:blur(8px);padding:6px 18px;border-radius:30px;border:1px solid rgba(255,255,255,0.06);z-index:20;display:flex;gap:12px;align-items:center;pointer-events:auto;font-size:13px}
         #topbar button{background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 14px;border-radius:20px;cursor:pointer;transition:.2s;font-size:12px}
         #topbar button:hover{background:rgba(255,255,255,0.15)}
@@ -41,21 +39,96 @@
         #status{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);padding:6px 20px;border-radius:30px;font-size:13px;color:#ccc;z-index:15;pointer-events:none;border:1px solid rgba(255,255,255,0.05);white-space:nowrap}
         #hint{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.4);padding:4px 16px;border-radius:20px;font-size:12px;color:#999;z-index:15;pointer-events:none;white-space:nowrap}
         .crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.06);font-size:36px;pointer-events:none;z-index:5;font-weight:100}
-        @media(max-width:768px){#panel{width:200px;padding:10px 8px}#topbar{font-size:11px;padding:4px 12px}#topbar button{font-size:10px;padding:2px 10px}}
+        #modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:100;display:none;justify-content:center;align-items:center}
+        #modal-box{background:#2a2a3a;border-radius:16px;padding:24px;width:400px;max-width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.06)}
+        #modal-box h3{font-size:18px;margin-bottom:16px;color:#fff}
+        #modal-box label{display:block;font-size:13px;color:#aaa;margin:12px 0 4px}
+        #modal-box input[type=text],#modal-box select{width:100%;padding:8px 12px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:14px}
+        #modal-box .file-drop{width:100%;padding:30px;border:2px dashed #555;border-radius:12px;text-align:center;color:#aaa;cursor:pointer;transition:.2s;margin-top:8px}
+        #modal-box .file-drop:hover{border-color:#4a9eff;background:rgba(74,158,255,0.05)}
+        #modal-box .file-drop.dragover{border-color:#4a9eff;background:rgba(74,158,255,0.1)}
+        #modal-box .file-drop input{display:none}
+        #modal-box .buttons{display:flex;gap:12px;margin-top:20px;justify-content:flex-end}
+        #modal-box .buttons button{padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:14px;transition:.2s}
+        #modal-box .buttons .cancel{background:rgba(255,255,255,0.1);color:#ccc}
+        #modal-box .buttons .cancel:hover{background:rgba(255,255,255,0.2)}
+        #modal-box .buttons .add{background:#4a9eff;color:#fff}
+        #modal-box .buttons .add:hover{background:#3a8eef}
+        #modal-box .preview{margin-top:12px;text-align:center}
+        #modal-box .preview img{max-width:100px;max-height:100px;border-radius:8px;border:1px solid #444}
+        #func-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:110;display:none;justify-content:center;align-items:center}
+        #func-box{background:#2a2a3a;border-radius:16px;padding:24px;width:350px;max-width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.06)}
+        #func-box h3{font-size:18px;margin-bottom:12px;color:#fff}
+        #func-box label{display:block;font-size:13px;color:#aaa;margin:8px 0 4px}
+        #func-box select{width:100%;padding:8px 12px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:14px}
+        #func-box .buttons{display:flex;gap:12px;margin-top:16px;justify-content:flex-end}
+        #func-box .buttons button{padding:6px 16px;border:none;border-radius:8px;cursor:pointer;font-size:14px}
+        #func-box .buttons .cancel{background:rgba(255,255,255,0.1);color:#ccc}
+        #func-box .buttons .apply{background:#6c5ce7;color:#fff}
+        @media(max-width:768px){#panel{width:200px;padding:10px 8px}#topbar{font-size:11px;padding:4px 12px}#topbar button{font-size:10px;padding:2px 10px}#modal-box{width:95%}#func-box{width:95%}}
     </style>
 </head>
 <body>
+
+<!-- Модальные окна -->
+<div id="modal-overlay">
+    <div id="modal-box">
+        <h3>Добавить текстуру</h3>
+        <label>Название</label>
+        <input type="text" id="tex-name" placeholder="Моя текстура">
+        <label>Тип объекта</label>
+        <select id="tex-type">
+            <option value="wall">Стена</option>
+            <option value="object">Предмет (спрайт)</option>
+        </select>
+        <label>Изображение (PNG, JPG)</label>
+        <div class="file-drop" id="file-drop">
+            <span>Перетащите файл или кликните для выбора</span>
+            <input type="file" accept="image/png,image/jpeg" id="file-input">
+        </div>
+        <div class="preview" id="preview-container" style="display:none;">
+            <img id="preview-image" src="" alt="Preview">
+        </div>
+        <div class="buttons">
+            <button class="cancel" id="modal-cancel">Отмена</button>
+            <button class="add" id="modal-add">Добавить</button>
+        </div>
+    </div>
+</div>
+
+<div id="func-modal">
+    <div id="func-box">
+        <h3>Функции предмета</h3>
+        <label>Выберите действие</label>
+        <select id="func-select">
+            <option value="raise">Поднять на 1 м</option>
+            <option value="lower">Опустить на 1 м</option>
+            <option value="move">Переместить в случайную точку</option>
+            <option value="rotate">Повернуть на 45°</option>
+            <option value="scale_up">Увеличить на 20%</option>
+            <option value="scale_down">Уменьшить на 20%</option>
+        </select>
+        <div class="buttons">
+            <button class="cancel" id="func-cancel">Отмена</button>
+            <button class="apply" id="func-apply">Применить</button>
+        </div>
+    </div>
+</div>
+
 <div id="container">
     <div id="canvas-wrap">
         <div class="crosshair">+</div>
         <div id="topbar">
             <span style="color:#aaa;">📁 Проект</span>
             <button id="save-json">💾 Сохранить JSON</button>
+            <button id="load-json-btn">📂 Загрузить JSON</button>
             <button id="export-html">⬇️ Экспорт HTML</button>
+            <button id="import-html-btn">📂 Импорт HTML</button>
+            <button id="add-texture-btn">🖼️ Добавить текстуру</button>
             <div class="sep"></div>
             <button id="clear-all" style="color:#ff6b6b;">❌ Очистить</button>
         </div>
-        <div id="status">Нажмите Escape для отмены действия</div>
+        <div id="status">Нажмите Escape для отмены</div>
         <div id="hint">Выберите инструмент справа</div>
     </div>
     <div id="panel">
@@ -88,9 +161,41 @@
                 <button data-object="table">Стол</button>
                 <button data-object="chair">Стул</button>
                 <button data-object="lamp">Торшер</button>
+                <button data-object="door">🚪 Дверь</button>
             </div>
             <div style="margin-top:6px;">
                 <button id="object-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:16px;font-size:12px;cursor:pointer;">Включить предметы</button>
+            </div>
+        </div>
+
+        <!-- Оружие -->
+        <div class="category">
+            <div class="title">⚔️ Оружие</div>
+            <div class="items" id="weapon-items">
+                <button data-weapon="sword">🗡️ Меч (мачете)</button>
+                <button data-weapon="knife">🔪 Нож</button>
+                <button data-weapon="pistol">🔫 Пистолет</button>
+                <button data-weapon="rifle">🔫 AK-47</button>
+                <button data-weapon="shotgun">💥 Дробовик</button>
+                <button data-weapon="sniper">🎯 Снайперка</button>
+                <button data-weapon="medkit">🩹 Аптечка</button>
+            </div>
+            <div style="margin-top:6px;">
+                <button id="weapon-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:16px;font-size:12px;cursor:pointer;">Включить оружие</button>
+            </div>
+        </div>
+
+        <!-- Патроны -->
+        <div class="category">
+            <div class="title">🔫 Патроны</div>
+            <div class="items" id="ammo-items">
+                <button data-ammo="pistol_ammo">🔹 Пистолетные</button>
+                <button data-ammo="rifle_ammo">🔸 AK (коробка)</button>
+                <button data-ammo="shotgun_ammo">🔶 Дробовые</button>
+                <button data-ammo="sniper_ammo">🔴 Снайперские</button>
+            </div>
+            <div style="margin-top:6px;">
+                <button id="ammo-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:16px;font-size:12px;cursor:pointer;">Включить патроны</button>
             </div>
         </div>
 
@@ -104,6 +209,11 @@
             <div style="margin-top:6px;">
                 <button id="wall-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:16px;font-size:12px;cursor:pointer;">Включить стены</button>
             </div>
+        </div>
+
+        <div id="user-category" class="category" style="display:none;">
+            <div class="title">👤 Пользовательские</div>
+            <div class="items" id="user-items"></div>
         </div>
 
         <div class="category">
@@ -134,6 +244,9 @@
     </div>
 </div>
 
+<input type="file" id="load-json-input" accept=".json" style="display:none">
+<input type="file" id="import-html-input" accept=".html" style="display:none">
+
 <script type="importmap">
 {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
 </script>
@@ -142,13 +255,23 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
+// ----- ДИАЛОГ РАЗМЕРА КАРТЫ -----
+let MAP_SIZE = 500, SEGMENTS = 40;
+const szPrompt = prompt('Введите размер карты в метрах (100-10000, рекомендуется 500-2000):', '500');
+if (szPrompt !== null) {
+    MAP_SIZE = Math.max(100, Math.min(10000, parseInt(szPrompt) || 500));
+    SEGMENTS = Math.max(16, Math.min(80, Math.floor(3000 / MAP_SIZE * 80)));
+    SEGMENTS = Math.min(SEGMENTS, 80);
+}
+console.log(`Карта ${MAP_SIZE}×${MAP_SIZE}, сегментов ${SEGMENTS}`);
+
 // ----- КОНСТАНТЫ -----
-const MAP_SIZE=100, SEGMENTS=80, MAX_HEIGHT=20, MIN_HEIGHT=-20;
-const WALL_HEIGHT_DEFAULT=2.5, WALL_WIDTH_DEFAULT=0.3, SNAP_GRID=0.5;
-const FALLBACK_TEXTURE_BASE64='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARzQklUCAgICHwIZAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABdJREFUOE9j/P//PwM6YGL8TwD5QCwAEPQBDb2y80cAAAAASUVORK5CYII=';
+const MAX_HEIGHT = 20, MIN_HEIGHT = -20;
+const WALL_HEIGHT_DEFAULT = 2.5, WALL_WIDTH_DEFAULT = 0.3, SNAP_GRID = 0.5;
+const FALLBACK_TEXTURE_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARzQklUCAgICHwIZAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABdJREFUOE9j/P//PwM6YGL8TwD5QCwAEPQBDb2y80cAAAAASUVORK5CYII=';
 
 // ----- СОСТОЯНИЕ -----
-let currentMode = 'none'; // 'terrain' | 'objects' | 'walls' | 'select' | 'delete' | 'collision' | 'none'
+let currentMode = 'none';
 let reliefAction = 'raise';
 let selectedObject = null;
 let selectedObjects = [];
@@ -156,31 +279,25 @@ let objectIdCounter = 0;
 const sceneObjects = [];
 let clipboard = null;
 let snapEnabled = true;
-let physicsEnabled = false;
-let physicsWorld = null;
-let physicsBodies = [];
-
-let ghostObject = null;
-let ghostStartPoint = null;
-let isGhostActive = false;
-let ghostType = null; // 'wall' | 'object'
-let ghostData = {};
-let currentWallType = 'wood';
-let currentObjectType = 'cube';
-let currentTransformMode = 'translate';
+let ghostObject = null, ghostStartPoint = null, isGhostActive = false, ghostType = null, ghostData = {};
+let currentWallType = 'wood', currentObjectType = 'cube', currentTransformMode = 'translate';
+let currentWeaponType = 'sword';
+let currentAmmoType = 'pistol_ammo';
 let ghostSmoothTarget = null;
-
+let userTextures = [];
+let doorObjects = [];
 const textureData = {};
-const textureNames = ['trawa','stena','stena2','dpol','zemla','zemla2','nebo','bereza'];
-const textureExtensions = {trawa:'jpg',stena:'jpg',stena2:'jpg',dpol:'jpg',zemla:'jpg',zemla2:'jpg',nebo:'jpg',bereza:'png'};
+// Добавляем новые текстуры для оружия
+const textureNames = ['trawa','stena','stena2','dpol','zemla','zemla2','nebo','bereza','drobavik','ak47','machete','patronaak'];
+const textureExtensions = {trawa:'jpg',stena:'jpg',stena2:'jpg',dpol:'jpg',zemla:'jpg',zemla2:'jpg',nebo:'jpg',bereza:'png',drobavik:'png',ak47:'png',machete:'png',patronaak:'png'};
 
 // ----- СЦЕНА -----
 const container = document.getElementById('canvas-wrap');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x6da5c9);
-scene.fog = new THREE.Fog(0x6da5c9,60,120);
+scene.fog = new THREE.Fog(0x6da5c9, Math.min(MAP_SIZE*0.8,120), Math.min(MAP_SIZE*1.2,200));
 
-const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 200);
+const camera = new THREE.PerspectiveCamera(60, container.clientWidth/container.clientHeight, 0.1, 300);
 camera.position.set(15,12,20);
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
@@ -191,13 +308,13 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 container.appendChild(renderer.domElement);
 
-// ----- УПРАВЛЕНИЕ КАМЕРОЙ -----
+// ----- УПРАВЛЕНИЕ КАМЕРОЙ (РЕДАКТОР) -----
 const orbitControls = new OrbitControls(camera, renderer.domElement);
 orbitControls.enableDamping = true;
 orbitControls.dampingFactor = 0.08;
-orbitControls.maxPolarAngle = Math.PI / 2.1;
+orbitControls.maxPolarAngle = Math.PI/2.1;
 orbitControls.minDistance = 2;
-orbitControls.maxDistance = 80;
+orbitControls.maxDistance = Math.min(MAP_SIZE*1.5,300);
 orbitControls.target.set(0,0,0);
 orbitControls.update();
 
@@ -222,9 +339,9 @@ const ambient = new THREE.AmbientLight(0x404060,0.5); scene.add(ambient);
 const sun = new THREE.DirectionalLight(0xffeedd,1.8);
 sun.position.set(30,40,20); sun.castShadow = true;
 sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048;
-sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 100;
-sun.shadow.camera.left = -50; sun.shadow.camera.right = 50;
-sun.shadow.camera.top = 50; sun.shadow.camera.bottom = -50;
+sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 150;
+sun.shadow.camera.left = -MAP_SIZE/2; sun.shadow.camera.right = MAP_SIZE/2;
+sun.shadow.camera.top = MAP_SIZE/2; sun.shadow.camera.bottom = -MAP_SIZE/2;
 scene.add(sun);
 const fill = new THREE.DirectionalLight(0x8888ff,0.3); fill.position.set(-20,10,-20); scene.add(fill);
 
@@ -276,13 +393,13 @@ function initTerrain() {
 const gridHelper = new THREE.GridHelper(MAP_SIZE, 20, 0x88ff88, 0x44aa44);
 gridHelper.position.y = 0.02;
 scene.add(gridHelper);
-const gridFine = new THREE.GridHelper(MAP_SIZE, 100, 0x88ff88, 0x44aa44);
+const gridFine = new THREE.GridHelper(MAP_SIZE, Math.floor(MAP_SIZE), 0x88ff88, 0x44aa44);
 gridFine.position.y = 0.01;
 gridFine.material.transparent = true;
-gridFine.material.opacity = 0.3;
+gridFine.material.opacity = 0.2;
 scene.add(gridFine);
 
-// ----- ФУНКЦИИ РЕЛЬЕФА -----
+// ----- РЕЛЬЕФ -----
 function modifyTerrain(x,z,radius,strength,mode) {
     const r2 = radius*radius;
     for (let i=0; i<vertexCount; i++) {
@@ -298,23 +415,31 @@ function modifyTerrain(x,z,radius,strength,mode) {
     updateTerrain();
 }
 
-// ----- СОЗДАНИЕ ОБЪЕКТОВ (упрощённо, но рабочее) -----
+// ----- СОЗДАНИЕ ОБЪЕКТОВ (СТЕНЫ С ВКЛЮЧЁННОЙ КОЛЛИЗИЕЙ ПО УМОЛЧАНИЮ) -----
 function createWall(x1,z1,x2,z2,height=WALL_HEIGHT_DEFAULT,width=WALL_WIDTH_DEFAULT,type='wood') {
     const dx = x2-x1, dz = z2-z1, len = Math.sqrt(dx*dx+dz*dz);
     if (len < 0.3) return null;
     const angle = Math.atan2(dx,dz), mx = (x1+x2)/2, mz = (z1+z2)/2;
     let tex = null;
-    if (type === 'wood' && textureData.dpol) tex = createTextureFromBase64(textureData.dpol);
-    else if (type === 'stone' && textureData.stena) tex = createTextureFromBase64(textureData.stena);
-    else if (type === 'stone2' && textureData.stena2) tex = createTextureFromBase64(textureData.stena2);
+    if (type.startsWith('user_')) {
+        const u = userTextures.find(t => t.name === type.substring(5) && t.type === 'wall');
+        if (u) tex = createTextureFromBase64(u.dataURL);
+    }
+    if (!tex) {
+        if (type === 'wood' && textureData.dpol) tex = createTextureFromBase64(textureData.dpol);
+        else if (type === 'stone' && textureData.stena) tex = createTextureFromBase64(textureData.stena);
+        else if (type === 'stone2' && textureData.stena2) tex = createTextureFromBase64(textureData.stena2);
+    }
     if (!tex) tex = createTextureFromBase64(FALLBACK_TEXTURE_BASE64);
     const mat = new THREE.MeshStandardMaterial({ map:tex, color:0xffffff, roughness:0.7 });
     const wall = new THREE.Mesh(new THREE.BoxGeometry(width,height,len), mat);
     wall.position.set(mx, height/2, mz); wall.rotation.y = angle;
     wall.castShadow = true; wall.receiveShadow = true;
     wall.userData.isObject = true; wall.userData.id = objectIdCounter++;
-    wall.userData.type = 'wall'; wall.userData.wallType = type;
+    wall.userData.type = 'wall';
+    wall.userData.wallType = type;
     wall.userData.width = width; wall.userData.height = height; wall.userData.length = len;
+    wall.userData.collision = true;
     scene.add(wall);
     const obj = { mesh:wall, id:wall.userData.id, type:'wall', data: {
         width, height, len,
@@ -327,7 +452,185 @@ function createWall(x1,z1,x2,z2,height=WALL_HEIGHT_DEFAULT,width=WALL_WIDTH_DEFA
 }
 
 function createObject(type, pos, color=0xffaa00, size=0.6) {
-    // Для простоты реализуем только базовые примитивы (без деревьев, столов и т.д. — их можно добавить позже)
+    if (type.startsWith('user_')) {
+        const u = userTextures.find(t => t.name === type.substring(5) && t.type === 'object');
+        if (u) {
+            const tex = createTextureFromBase64(u.dataURL);
+            if (tex) {
+                const mat = new THREE.SpriteMaterial({ map:tex, transparent:true, depthTest:true, depthWrite:false });
+                const sprite = new THREE.Sprite(mat);
+                sprite.position.copy(pos);
+                sprite.scale.set(1,1,1);
+                sprite.userData.isObject = true;
+                sprite.userData.id = objectIdCounter++;
+                sprite.userData.type = 'user_sprite';
+                sprite.userData.userName = u.name;
+                sprite.userData.collision = true;
+                scene.add(sprite);
+                const obj = { mesh:sprite, id:sprite.userData.id, type:'user_sprite', data: {
+                    position: pos.clone(), rotation: new THREE.Euler(0,0,0), scale: new THREE.Vector3(1,1,1),
+                    color: 0xffffff, texture: u.name, collision: true, size: 1
+                }};
+                sceneObjects.push(obj);
+                updateObjectList();
+                return obj;
+            }
+        }
+        type = 'cube';
+    }
+    // Оружие с текстурами
+    if (type === 'sword' || type === 'knife' || type === 'pistol' || type === 'rifle' || type === 'shotgun' || type === 'sniper' || type === 'medkit') {
+        const group = new THREE.Group();
+        // Базовая текстура для оружия (если есть)
+        let tex = null;
+        if (type === 'sword') tex = textureData.machete ? createTextureFromBase64(textureData.machete) : null;
+        else if (type === 'rifle') tex = textureData.ak47 ? createTextureFromBase64(textureData.ak47) : null;
+        else if (type === 'shotgun') tex = textureData.drobavik ? createTextureFromBase64(textureData.drobavik) : null;
+        // Для остальных используем цветные материалы
+        const mat = new THREE.MeshStandardMaterial({ 
+            map: tex || undefined, 
+            color: tex ? 0xffffff : (color || 0xcccccc), 
+            roughness: 0.4, 
+            metalness: tex ? 0.2 : 0.7 
+        });
+        let mesh;
+        switch (type) {
+            case 'sword': // Мачете
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.2, 0.02), mat);
+                mesh.position.y = 0.6;
+                group.add(mesh);
+                const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.15, 6), new THREE.MeshStandardMaterial({ color: 0x8B4513 }));
+                handle.position.y = -0.1;
+                group.add(handle);
+                break;
+            case 'knife':
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.4, 0.01), mat);
+                mesh.position.y = 0.2;
+                group.add(mesh);
+                const khandle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.08, 6), new THREE.MeshStandardMaterial({ color: 0x654321 }));
+                khandle.position.y = -0.05;
+                group.add(khandle);
+                break;
+            case 'pistol':
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 0.4), mat);
+                mesh.position.set(0, 0.05, 0);
+                group.add(mesh);
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8), mat);
+                barrel.rotation.x = Math.PI/2;
+                barrel.position.set(0, 0.05, 0.25);
+                group.add(barrel);
+                break;
+            case 'rifle': // AK-47
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.8), mat);
+                mesh.position.set(0, 0.04, 0);
+                group.add(mesh);
+                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.3), new THREE.MeshStandardMaterial({ color: 0x8B4513 }));
+                stock.position.set(0, 0.04, -0.45);
+                group.add(stock);
+                const barrel2 = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.5, 8), mat);
+                barrel2.rotation.x = Math.PI/2;
+                barrel2.position.set(0, 0.04, 0.5);
+                group.add(barrel2);
+                break;
+            case 'shotgun': // Дробовик
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.6), mat);
+                mesh.position.set(0, 0.05, 0);
+                group.add(mesh);
+                const stock2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.25), new THREE.MeshStandardMaterial({ color: 0x8B4513 }));
+                stock2.position.set(0, 0.05, -0.35);
+                group.add(stock2);
+                break;
+            case 'sniper':
+                mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 8), mat);
+                mesh.rotation.x = Math.PI/2;
+                mesh.position.set(0, 0.03, 0);
+                group.add(mesh);
+                const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.1, 8), new THREE.MeshStandardMaterial({ color: 0x222222 }));
+                scope.rotation.x = Math.PI/2;
+                scope.position.set(0, 0.08, 0.1);
+                group.add(scope);
+                break;
+            case 'medkit':
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.3, 0.1), new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x00aa00, emissiveIntensity: 0.3 }));
+                mesh.position.y = 0.15;
+                group.add(mesh);
+                const cross = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.25, 0.02), new THREE.MeshStandardMaterial({ color: 0xff0000 }));
+                cross.position.y = 0.15;
+                group.add(cross);
+                const cross2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.04, 0.02), new THREE.MeshStandardMaterial({ color: 0xff0000 }));
+                cross2.position.y = 0.15;
+                group.add(cross2);
+                break;
+        }
+        group.position.copy(pos);
+        group.userData.isObject = true;
+        group.userData.id = objectIdCounter++;
+        group.userData.type = type;
+        group.userData.collision = true;
+        scene.add(group);
+        const obj = { mesh: group, id: group.userData.id, type: type, data: {
+            position: pos.clone(), rotation: new THREE.Euler(0,0,0), scale: new THREE.Vector3(1,1,1),
+            color: color || 0xcccccc, texture: null, collision: true, size: 1
+        }};
+        sceneObjects.push(obj);
+        updateObjectList();
+        return obj;
+    }
+    // Патроны (коробка для AK с текстурой)
+    if (type === 'pistol_ammo' || type === 'rifle_ammo' || type === 'shotgun_ammo' || type === 'sniper_ammo') {
+        let tex = null;
+        if (type === 'rifle_ammo') tex = textureData.patronaak ? createTextureFromBase64(textureData.patronaak) : null;
+        const colorMap = { pistol_ammo: 0xffaa00, rifle_ammo: 0x00aaff, shotgun_ammo: 0xff6600, sniper_ammo: 0xff0044 };
+        const mat = new THREE.MeshStandardMaterial({ 
+            map: tex || undefined,
+            color: tex ? 0xffffff : colorMap[type] || 0xaaaaaa,
+            metalness: tex ? 0.2 : 0.8, 
+            roughness: 0.4 
+        });
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.15), mat); // коробка
+        mesh.position.copy(pos);
+        mesh.castShadow = true;
+        mesh.userData.isObject = true;
+        mesh.userData.id = objectIdCounter++;
+        mesh.userData.type = type;
+        mesh.userData.collision = true;
+        scene.add(mesh);
+        const obj = { mesh, id: mesh.userData.id, type: type, data: {
+            position: pos.clone(), rotation: new THREE.Euler(0,0,0), scale: new THREE.Vector3(1,1,1),
+            color: colorMap[type], texture: null, collision: true, size: 1
+        }};
+        sceneObjects.push(obj);
+        updateObjectList();
+        return obj;
+    }
+    // Старые типы (куб, сфера, цилиндр, дверь и т.д.)
+    if (type === 'door') {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color:0x8B5A2B, roughness:0.8 });
+        const doorMesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.0, 0.05), mat);
+        doorMesh.position.y = 1.0; doorMesh.castShadow = true;
+        group.add(doorMesh);
+        const hMat = new THREE.MeshStandardMaterial({ color:0xffaa00, metalness:0.8, roughness:0.2 });
+        const handle = new THREE.Mesh(new THREE.SphereGeometry(0.06,8,8), hMat);
+        handle.position.set(0.35,1.0,0.04);
+        group.add(handle);
+        group.position.copy(pos);
+        group.userData.isObject = true;
+        group.userData.id = objectIdCounter++;
+        group.userData.type = 'door';
+        group.userData.isOpen = false;
+        group.userData.doorMesh = doorMesh;
+        group.userData.collision = true;
+        scene.add(group);
+        const obj = { mesh:group, id:group.userData.id, type:'door', data: {
+            position: pos.clone(), rotation: new THREE.Euler(0,0,0), scale: new THREE.Vector3(1,1,1),
+            color: 0x8B5A2B, texture: null, collision: true, isOpen: false
+        }};
+        sceneObjects.push(obj);
+        doorObjects.push(obj);
+        updateObjectList();
+        return obj;
+    }
     const mat = new THREE.MeshStandardMaterial({ color, roughness:0.5, metalness:0.1 });
     let mesh;
     if (type === 'cube') mesh = new THREE.Mesh(new THREE.BoxGeometry(size,size,size), mat);
@@ -338,6 +641,7 @@ function createObject(type, pos, color=0xffaa00, size=0.6) {
     mesh.castShadow = true; mesh.receiveShadow = true;
     mesh.userData.isObject = true; mesh.userData.id = objectIdCounter++;
     mesh.userData.type = type;
+    mesh.userData.collision = true;
     scene.add(mesh);
     const obj = { mesh, id:mesh.userData.id, type, data: {
         position: pos.clone(), rotation: new THREE.Euler(0,0,0), scale: new THREE.Vector3(1,1,1),
@@ -356,6 +660,10 @@ function removeObject(obj) {
     if (selectedObject === obj) { selectedObject = null; transformControls.detach(); }
     const si = selectedObjects.indexOf(obj);
     if (si !== -1) selectedObjects.splice(si, 1);
+    if (obj.type === 'door') {
+        const di = doorObjects.indexOf(obj);
+        if (di !== -1) doorObjects.splice(di, 1);
+    }
     updateObjectList();
     hideProperties();
 }
@@ -364,11 +672,12 @@ function clearAll() {
     sceneObjects.length = 0;
     selectedObject = null; selectedObjects = [];
     transformControls.detach();
-    updateObjectList();
-    hideProperties();
+    doorObjects = [];
     for (let i=0; i<vertexCount; i++) heights[i] = 0;
     updateTerrain();
     removeGhost();
+    updateObjectList();
+    hideProperties();
 }
 function removeGhost() {
     if (ghostObject) { scene.remove(ghostObject); ghostObject = null; }
@@ -391,7 +700,7 @@ function selectObject(obj) {
     }
     updateObjectList();
 }
-function showProperties(obj) { /* панель свойств пока не реализована */ }
+function showProperties(obj) {}
 function hideProperties() {}
 function duplicateObject(obj) {
     const pos = obj.data.position.clone(); pos.x += 1; pos.z += 1;
@@ -402,6 +711,10 @@ function duplicateObject(obj) {
         const dx = Math.sin(ang)*halfW, dz = Math.cos(ang)*halfW;
         const cx = obj.mesh.position.x, cz = obj.mesh.position.z;
         n = createWall(cx-dx+1, cz-dz+1, cx+dx+1, cz+dz+1, d.height, d.width, d.wallType);
+    } else if (obj.type === 'user_sprite') {
+        const u = userTextures.find(t => t.name === obj.data.texture);
+        if (u) n = createObject('user_'+u.name, pos);
+        else n = createObject('cube', pos);
     } else {
         n = createObject(obj.type, pos, obj.data.color, 0.6);
     }
@@ -411,13 +724,93 @@ function setStatus(msg) { document.getElementById('status').textContent = msg; }
 function setHint(msg) { document.getElementById('hint').textContent = msg; }
 function updateObjectList() { setStatus(`Объектов: ${sceneObjects.length}`); }
 function snapPoint(x,z) {
-    if (!snapEnabled) return {x,y:z};
+    if (!snapEnabled) return {x:x, y:z};
     const sx = Math.round(x / SNAP_GRID) * SNAP_GRID;
     const sz = Math.round(z / SNAP_GRID) * SNAP_GRID;
     return {x:sx, y:sz};
 }
 
-// ----- ОБРАБОТЧИКИ ДВОЙНОГО КЛИКА -----
+// ----- ПОЛЬЗОВАТЕЛЬСКИЕ ТЕКСТУРЫ -----
+function addUserTexture(name, type, dataURL) {
+    if (userTextures.some(u => u.name === name)) {
+        setStatus('Текстура с таким именем уже существует');
+        return false;
+    }
+    userTextures.push({ name, type, dataURL });
+    updateUserPanel();
+    setStatus(`Текстура "${name}" добавлена`);
+    return true;
+}
+function updateUserPanel() {
+    const cat = document.getElementById('user-category');
+    const items = document.getElementById('user-items');
+    if (userTextures.length === 0) {
+        cat.style.display = 'none';
+        return;
+    }
+    cat.style.display = 'block';
+    items.innerHTML = '';
+    userTextures.forEach(ut => {
+        const btn = document.createElement('button');
+        btn.textContent = ut.name;
+        btn.dataset.userName = ut.name;
+        btn.dataset.userType = ut.type;
+        btn.addEventListener('click', () => {
+            if (ut.type === 'wall') {
+                currentWallType = 'user_' + ut.name;
+                setMode('walls');
+                document.querySelectorAll('#user-items button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            } else {
+                currentObjectType = 'user_' + ut.name;
+                setMode('objects');
+                document.querySelectorAll('#user-items button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+            setStatus(`Выбран пользовательский объект: ${ut.name}`);
+        });
+        items.appendChild(btn);
+    });
+}
+
+// ----- ФУНКЦИИ ДЛЯ ПРЕДМЕТОВ -----
+function applyFunctionToObject(obj, func) {
+    if (!obj) return;
+    const pos = obj.data.position;
+    const rot = obj.data.rotation;
+    const scale = obj.data.scale;
+    switch(func) {
+        case 'raise': pos.y += 1; break;
+        case 'lower': pos.y -= 1; break;
+        case 'move':
+            pos.x += (Math.random() - 0.5) * 10;
+            pos.z += (Math.random() - 0.5) * 10;
+            break;
+        case 'rotate': rot.y += Math.PI/4; break;
+        case 'scale_up': scale.multiplyScalar(1.2); break;
+        case 'scale_down': scale.multiplyScalar(0.8); break;
+    }
+    obj.mesh.position.copy(pos);
+    obj.mesh.rotation.copy(rot);
+    obj.mesh.scale.copy(scale);
+    setStatus(`Применено: ${func} к ${obj.type} #${obj.id}`);
+}
+
+// ----- ДВЕРЬ (только визуальное открытие/закрытие, без физики) -----
+function toggleDoor(obj) {
+    if (obj.type !== 'door') return;
+    const isOpen = obj.data.isOpen || false;
+    obj.data.isOpen = !isOpen;
+    const group = obj.mesh;
+    const doorMesh = group.children[0];
+    if (doorMesh) {
+        const targetAngle = isOpen ? 0 : Math.PI/2;
+        doorMesh.rotation.y = targetAngle;
+    }
+    setStatus(`Дверь ${obj.data.isOpen ? 'открыта' : 'закрыта'}`);
+}
+
+// ----- ОБРАБОТЧИКИ ДВОЙНОГО КЛИКА (СТЕНЫ, ПРЕДМЕТЫ) -----
 renderer.domElement.addEventListener('dblclick', (e) => {
     if (currentMode === 'walls') {
         if (!isGhostActive) {
@@ -425,7 +818,17 @@ renderer.domElement.addEventListener('dblclick', (e) => {
             if (hit) {
                 const p = hit.point; const s = snapPoint(p.x, p.z);
                 ghostStartPoint = new THREE.Vector3(s.x, 0, s.y);
-                const tex = createTextureFromBase64(FALLBACK_TEXTURE_BASE64);
+                let tex = null;
+                if (currentWallType.startsWith('user_')) {
+                    const u = userTextures.find(t => t.name === currentWallType.substring(5) && t.type === 'wall');
+                    if (u) tex = createTextureFromBase64(u.dataURL);
+                }
+                if (!tex) {
+                    if (currentWallType === 'wood' && textureData.dpol) tex = createTextureFromBase64(textureData.dpol);
+                    else if (currentWallType === 'stone' && textureData.stena) tex = createTextureFromBase64(textureData.stena);
+                    else if (currentWallType === 'stone2' && textureData.stena2) tex = createTextureFromBase64(textureData.stena2);
+                }
+                if (!tex) tex = createTextureFromBase64(FALLBACK_TEXTURE_BASE64);
                 const mat = new THREE.MeshStandardMaterial({ map:tex, color:0x4a9eff, transparent:true, opacity:0.4, depthWrite:false });
                 const w = WALL_WIDTH_DEFAULT, h = WALL_HEIGHT_DEFAULT;
                 const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, 1), mat);
@@ -434,7 +837,7 @@ renderer.domElement.addEventListener('dblclick', (e) => {
                 scene.add(mesh); ghostObject = mesh; isGhostActive = true; ghostType = 'wall';
                 ghostData = { width:w, height:h, type:currentWallType };
                 ghostSmoothTarget = mesh.position.clone();
-                setStatus('Выберите конечную точку стены (двойной клик)');
+                setStatus('Выберите конечную точку стены');
                 setHint('Двойной клик — фиксация, колёсико — ширина');
                 orbitControls.enableZoom = false;
             }
@@ -456,19 +859,35 @@ renderer.domElement.addEventListener('dblclick', (e) => {
             if (hit) {
                 const p = hit.point; const s = snapPoint(p.x, p.z);
                 const pos = new THREE.Vector3(s.x, 0, s.y);
-                const mat = new THREE.MeshStandardMaterial({ color:0x4a9eff, transparent:true, opacity:0.4 });
                 let ghost;
-                if (currentObjectType === 'cube') ghost = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), mat);
-                else if (currentObjectType === 'sphere') ghost = new THREE.Mesh(new THREE.SphereGeometry(0.3,16,16), mat);
-                else if (currentObjectType === 'cylinder') ghost = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.6,12), mat);
-                else ghost = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), mat);
-                ghost.position.copy(pos); ghost.userData.isGhost = true;
-                scene.add(ghost); ghostObject = ghost; isGhostActive = true; ghostType = 'object';
-                ghostData = { type:currentObjectType };
-                ghostSmoothTarget = pos.clone();
-                setStatus('Выберите место для предмета (двойной клик)');
-                setHint('Двойной клик — фиксация');
-                orbitControls.enableZoom = false;
+                if (currentObjectType.startsWith('user_')) {
+                    const u = userTextures.find(t => t.name === currentObjectType.substring(5) && t.type === 'object');
+                    if (u) {
+                        const tex = createTextureFromBase64(u.dataURL);
+                        if (tex) {
+                            const mat = new THREE.SpriteMaterial({ map:tex, transparent:true, opacity:0.4, depthTest:true, depthWrite:false });
+                            ghost = new THREE.Sprite(mat);
+                            ghost.scale.set(1,1,1);
+                        }
+                    }
+                }
+                if (!ghost) {
+                    const mat = new THREE.MeshStandardMaterial({ color:0x4a9eff, transparent:true, opacity:0.4 });
+                    if (currentObjectType === 'cube') ghost = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), mat);
+                    else if (currentObjectType === 'sphere') ghost = new THREE.Mesh(new THREE.SphereGeometry(0.3,16,16), mat);
+                    else if (currentObjectType === 'cylinder') ghost = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.6,12), mat);
+                    else if (currentObjectType === 'door') ghost = new THREE.Mesh(new THREE.BoxGeometry(0.8,2.0,0.05), mat);
+                    else ghost = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), mat);
+                }
+                if (ghost) {
+                    ghost.position.copy(pos); ghost.userData.isGhost = true;
+                    scene.add(ghost); ghostObject = ghost; isGhostActive = true; ghostType = 'object';
+                    ghostData = { type:currentObjectType };
+                    ghostSmoothTarget = pos.clone();
+                    setStatus('Выберите место для предмета');
+                    setHint('Двойной клик — фиксация');
+                    orbitControls.enableZoom = false;
+                }
             }
         } else {
             const hit = getTerrainIntersection(e);
@@ -484,7 +903,7 @@ renderer.domElement.addEventListener('dblclick', (e) => {
     }
 });
 
-// ----- ПЛАВНОЕ ОБНОВЛЕНИЕ ПРИЗМЫ -----
+// Плавное обновление призмы
 function updateGhostSmooth() {
     if (!isGhostActive || !ghostObject) return;
     if (ghostSmoothTarget) {
@@ -591,8 +1010,16 @@ renderer.domElement.addEventListener('click', (e) => {
         }
     } else if (currentMode === 'select') {
         const obj = getObjectIntersection(e);
-        if (obj) selectObject(obj);
-        else selectObject(null);
+        if (obj) {
+            selectObject(obj);
+            if (obj.type !== 'wall' && obj.type !== 'tree' && obj.type !== 'user_sprite' && obj.type !== 'door') {
+                document.getElementById('func-modal').style.display = 'flex';
+                document.getElementById('func-select').value = 'raise';
+                window._funcTarget = obj;
+            }
+        } else {
+            selectObject(null);
+        }
     } else if (currentMode === 'delete') {
         const obj = getObjectIntersection(e);
         if (obj) { removeObject(obj); setStatus('Объект удалён'); }
@@ -600,7 +1027,7 @@ renderer.domElement.addEventListener('click', (e) => {
         const obj = getObjectIntersection(e);
         if (obj) {
             obj.data.collision = !obj.data.collision;
-            setStatus(`Коллизия для ${obj.type} #${obj.id}: ${obj.data.collision?'включена':'выключена'}`);
+            setStatus(`Коллизия ${obj.data.collision?'включена':'выключена'}`);
             obj.mesh.traverse(child => {
                 if (child.isMesh && child.material) {
                     child.material.color.setHex(obj.data.collision ? 0x00ff00 : 0xff0000);
@@ -619,11 +1046,11 @@ renderer.domElement.addEventListener('click', (e) => {
 
 // ----- ПАНЕЛЬ УПРАВЛЕНИЯ -----
 // Рельеф
-document.querySelectorAll('#relief-mode button').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('#relief-mode button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        reliefAction = btn.dataset.relief;
+document.querySelectorAll('#relief-mode button').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('#relief-mode button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        reliefAction = b.dataset.relief;
     });
 });
 document.getElementById('brush-radius').addEventListener('input', (e) => {
@@ -632,33 +1059,53 @@ document.getElementById('brush-radius').addEventListener('input', (e) => {
 document.getElementById('brush-strength').addEventListener('input', (e) => {
     document.getElementById('strength-label').textContent = parseFloat(e.target.value).toFixed(1);
 });
-document.getElementById('relief-activate').addEventListener('click', () => {
-    setMode('terrain');
-});
+document.getElementById('relief-activate').addEventListener('click', () => { setMode('terrain'); });
 
 // Предметы
-document.querySelectorAll('#object-items button').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('#object-items button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentObjectType = btn.dataset.object;
+document.querySelectorAll('#object-items button').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('#object-items button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        currentObjectType = b.dataset.object;
     });
 });
-document.getElementById('object-activate').addEventListener('click', () => {
+document.getElementById('object-activate').addEventListener('click', () => { setMode('objects'); });
+
+// Оружие
+document.querySelectorAll('#weapon-items button').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('#weapon-items button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        currentWeaponType = b.dataset.weapon;
+    });
+});
+document.getElementById('weapon-activate').addEventListener('click', () => {
+    currentObjectType = currentWeaponType;
+    setMode('objects');
+});
+
+// Патроны
+document.querySelectorAll('#ammo-items button').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('#ammo-items button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        currentAmmoType = b.dataset.ammo;
+    });
+});
+document.getElementById('ammo-activate').addEventListener('click', () => {
+    currentObjectType = currentAmmoType;
     setMode('objects');
 });
 
 // Стены
-document.querySelectorAll('#wall-items button').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('#wall-items button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentWallType = btn.dataset.wall;
+document.querySelectorAll('#wall-items button').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('#wall-items button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        currentWallType = b.dataset.wall;
     });
 });
-document.getElementById('wall-activate').addEventListener('click', () => {
-    setMode('walls');
-});
+document.getElementById('wall-activate').addEventListener('click', () => { setMode('walls'); });
 
 // Коллизия
 document.getElementById('collision-toggle').addEventListener('click', () => {
@@ -730,10 +1177,13 @@ document.getElementById('ungroup-btn').addEventListener('click', () => {
     selectedObject = null; transformControls.detach(); updateObjectList(); hideProperties(); setStatus('Группа разгруппирована');
 });
 
-// ----- ВЕРХНЯЯ ПЛАШКА -----
+// ----- СОХРАНЕНИЕ/ЗАГРУЗКА JSON -----
 document.getElementById('save-json').addEventListener('click', () => {
     const data = {
-        version: '5.1',
+        version: '7.2',
+        mapSize: MAP_SIZE,
+        segments: SEGMENTS,
+        userTextures: userTextures,
         objects: sceneObjects.map(o => ({
             id: o.id, type: o.type,
             data: {
@@ -750,29 +1200,904 @@ document.getElementById('save-json').addEventListener('click', () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'project.json'; a.click();
     URL.revokeObjectURL(url);
-    setStatus('Проект сохранён');
+    setStatus('Проект сохранён в JSON');
 });
+
+document.getElementById('load-json-btn').addEventListener('click', () => {
+    document.getElementById('load-json-input').click();
+});
+document.getElementById('load-json-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const data = JSON.parse(ev.target.result);
+            clearAll();
+            if (data.userTextures) {
+                userTextures = data.userTextures;
+                updateUserPanel();
+            }
+            if (data.terrain && data.terrain.heights) {
+                for (let i=0; i<Math.min(vertexCount, data.terrain.heights.length); i++) {
+                    heights[i] = data.terrain.heights[i] || 0;
+                }
+                updateTerrain();
+            }
+            if (data.objects) {
+                data.objects.forEach(objData => {
+                    const pos = new THREE.Vector3(...objData.data.position);
+                    const rot = new THREE.Euler(...objData.data.rotation);
+                    const sca = new THREE.Vector3(...objData.data.scale);
+                    let obj;
+                    if (objData.type === 'wall') {
+                        const w = objData.data.width || 0.3;
+                        const h = objData.data.height || 2.5;
+                        const l = objData.data.len || 1;
+                        const tex = createTextureFromBase64(FALLBACK_TEXTURE_BASE64);
+                        const mat = new THREE.MeshStandardMaterial({ map:tex, color:0xffffff, roughness:0.7 });
+                        const wall = new THREE.Mesh(new THREE.BoxGeometry(w,h,l), mat);
+                        wall.position.copy(pos); wall.rotation.copy(rot); wall.scale.copy(sca);
+                        wall.castShadow = true; wall.receiveShadow = true;
+                        wall.userData.isObject = true;
+                        wall.userData.id = objData.id || objectIdCounter++;
+                        wall.userData.type = 'wall';
+                        wall.userData.wallType = objData.data.wallType || 'wood';
+                        wall.userData.width = w; wall.userData.height = h; wall.userData.length = l;
+                        wall.userData.collision = objData.data.collision !== undefined ? objData.data.collision : true;
+                        scene.add(wall);
+                        obj = { mesh:wall, id:wall.userData.id, type:'wall', data: {
+                            width:w, height:h, len:l,
+                            position: pos.clone(), rotation: rot.clone(), scale: sca.clone(),
+                            color: 0xffffff, texture: objData.data.texture || 'wood',
+                            collision: objData.data.collision !== undefined ? objData.data.collision : true,
+                            wallType: objData.data.wallType || 'wood'
+                        }};
+                    } else if (objData.type === 'door') {
+                        const group = new THREE.Group();
+                        const mat = new THREE.MeshStandardMaterial({ color:0x8B5A2B, roughness:0.8 });
+                        const doorMesh = new THREE.Mesh(new THREE.BoxGeometry(0.8,2.0,0.05), mat);
+                        doorMesh.position.y = 1.0; doorMesh.castShadow = true;
+                        group.add(doorMesh);
+                        const hMat = new THREE.MeshStandardMaterial({ color:0xffaa00, metalness:0.8, roughness:0.2 });
+                        const handle = new THREE.Mesh(new THREE.SphereGeometry(0.06,8,8), hMat);
+                        handle.position.set(0.35,1.0,0.04);
+                        group.add(handle);
+                        group.position.copy(pos); group.rotation.copy(rot); group.scale.copy(sca);
+                        group.userData.isObject = true;
+                        group.userData.id = objData.id || objectIdCounter++;
+                        group.userData.type = 'door';
+                        group.userData.isOpen = false;
+                        group.userData.doorMesh = doorMesh;
+                        group.userData.collision = objData.data.collision !== undefined ? objData.data.collision : true;
+                        scene.add(group);
+                        obj = { mesh:group, id:group.userData.id, type:'door', data: {
+                            position: pos.clone(), rotation: rot.clone(), scale: sca.clone(),
+                            color: 0x8B5A2B, texture: null,
+                            collision: objData.data.collision !== undefined ? objData.data.collision : true,
+                            isOpen: false
+                        }};
+                        doorObjects.push(obj);
+                    } else if (objData.type === 'user_sprite') {
+                        const u = userTextures.find(t => t.name === objData.data.texture);
+                        if (u) {
+                            const tex = createTextureFromBase64(u.dataURL);
+                            if (tex) {
+                                const mat = new THREE.SpriteMaterial({ map:tex, transparent:true, depthTest:true, depthWrite:false });
+                                const sprite = new THREE.Sprite(mat);
+                                sprite.position.copy(pos); sprite.scale.copy(sca);
+                                sprite.userData.isObject = true;
+                                sprite.userData.id = objData.id || objectIdCounter++;
+                                sprite.userData.type = 'user_sprite';
+                                sprite.userData.userName = u.name;
+                                sprite.userData.collision = objData.data.collision !== undefined ? objData.data.collision : true;
+                                scene.add(sprite);
+                                obj = { mesh:sprite, id:sprite.userData.id, type:'user_sprite', data: {
+                                    position: pos.clone(), rotation: rot.clone(), scale: sca.clone(),
+                                    color: 0xffffff, texture: u.name,
+                                    collision: objData.data.collision !== undefined ? objData.data.collision : true,
+                                    size: 1
+                                }};
+                            }
+                        }
+                        if (!obj) {
+                            const mat = new THREE.MeshStandardMaterial({ color:0xffaa00 });
+                            const cube = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), mat);
+                            cube.position.copy(pos); cube.rotation.copy(rot); cube.scale.copy(sca);
+                            cube.castShadow = true; cube.receiveShadow = true;
+                            cube.userData.isObject = true; cube.userData.id = objData.id || objectIdCounter++;
+                            cube.userData.type = 'cube';
+                            cube.userData.collision = objData.data.collision !== undefined ? objData.data.collision : true;
+                            scene.add(cube);
+                            obj = { mesh:cube, id:cube.userData.id, type:'cube', data: {
+                                position: pos.clone(), rotation: rot.clone(), scale: sca.clone(),
+                                color: 0xffaa00, texture: null,
+                                collision: objData.data.collision !== undefined ? objData.data.collision : true,
+                                size: 0.6
+                            }};
+                        }
+                    } else {
+                        const mat = new THREE.MeshStandardMaterial({ color: objData.data.color || 0xffaa00, roughness:0.5, metalness:0.1 });
+                        let mesh;
+                        const size = objData.data.size || 0.6;
+                        if (objData.type === 'cube') mesh = new THREE.Mesh(new THREE.BoxGeometry(size,size,size), mat);
+                        else if (objData.type === 'sphere') mesh = new THREE.Mesh(new THREE.SphereGeometry(size/2,16,16), mat);
+                        else if (objData.type === 'cylinder') mesh = new THREE.Mesh(new THREE.CylinderGeometry(size/2,size/2,size,12), mat);
+                        else mesh = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), mat);
+                        mesh.position.copy(pos); mesh.rotation.copy(rot); mesh.scale.copy(sca);
+                        mesh.castShadow = true; mesh.receiveShadow = true;
+                        mesh.userData.isObject = true; mesh.userData.id = objData.id || objectIdCounter++;
+                        mesh.userData.type = objData.type;
+                        mesh.userData.collision = objData.data.collision !== undefined ? objData.data.collision : true;
+                        scene.add(mesh);
+                        obj = { mesh, id:mesh.userData.id, type:objData.type, data: {
+                            position: pos.clone(), rotation: rot.clone(), scale: sca.clone(),
+                            color: objData.data.color || 0xffaa00, texture: null,
+                            collision: objData.data.collision !== undefined ? objData.data.collision : true,
+                            size: size
+                        }};
+                    }
+                    if (obj) {
+                        sceneObjects.push(obj);
+                    }
+                });
+            }
+            setStatus('Проект загружен');
+            updateObjectList();
+        } catch (err) {
+            console.error(err);
+            setStatus('Ошибка загрузки проекта');
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+});
+
+// ----- ЭКСПОРТ HTML (С ВСТРОЕННЫМИ ТЕКСТУРАМИ) -----
 document.getElementById('export-html').addEventListener('click', () => {
-    setStatus('Экспорт в разработке');
+    // Включаем все системные текстуры в экспорт
+    const systemTextures = {};
+    for (const key in textureData) {
+        if (textureData[key] && !userTextures.some(u => u.name === key)) {
+            systemTextures[key] = textureData[key];
+        }
+    }
+    const data = {
+        mapSize: MAP_SIZE,
+        segments: SEGMENTS,
+        userTextures: userTextures,
+        systemTextures: systemTextures,
+        objects: sceneObjects.map(o => ({
+            id: o.id, type: o.type,
+            data: {
+                ...o.data,
+                position: o.data.position.toArray(),
+                rotation: o.data.rotation.toArray(),
+                scale: o.data.scale.toArray()
+            }
+        })),
+        terrain: { heights: Array.from(heights), origX: Array.from(origX), origZ: Array.from(origZ) }
+    };
+    const html = generateGameHTML(data);
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'game.html'; a.click();
+    URL.revokeObjectURL(url);
+    setStatus('HTML игра экспортирована с текстурами');
 });
-document.getElementById('clear-all').addEventListener('click', () => {
-    if (confirm('Удалить всё?')) { clearAll(); setStatus('Всё очищено'); }
+
+function generateGameHTML(data) {
+    const dataJSON = JSON.stringify(data);
+    return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Игра</title>
+<style>body{margin:0;overflow:hidden}#info{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:#fff;padding:6px 16px;border-radius:20px;font-size:14px;z-index:10;pointer-events:none}#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.3);font-size:30px;pointer-events:none;z-index:5}#inventory{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);border:2px solid rgba(255,255,255,0.2);border-radius:12px;padding:16px;display:none;grid-template-columns:repeat(4,60px);gap:8px;z-index:20;backdrop-filter:blur(8px)}#inventory .slot{width:60px;height:60px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;transition:0.2s;cursor:pointer}#inventory .slot:hover{background:rgba(255,255,255,0.15)}#inventory .slot.selected{background:rgba(74,158,255,0.4);border-color:#4a9eff}#ui-top{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);padding:8px 20px;border-radius:30px;color:#fff;font-size:16px;display:flex;gap:20px;z-index:15;pointer-events:none}#ui-top span{white-space:nowrap}</style>
+</head>
+<body>
+<div id="crosshair">+</div>
+<div id="info">WASD — ходьба, Пробел — прыжок, F — дверь, G — инвентарь</div>
+<div id="ui-top"><span id="health">❤️ 100</span><span id="weapon-display">🔫 Пистолет: 0</span></div>
+<div id="inventory"></div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+<\/script>
+<script type="module">
+import * as THREE from 'three';
+import * as CANNON from 'https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js';
+
+const DATA = ${dataJSON};
+
+// Текстуры (системные + пользовательские)
+const textureData = {};
+function createTextureFromBase64(b64){ if(!b64) return null; const img=new Image(); img.src=b64; const tex=new THREE.Texture(img); tex.needsUpdate=true; return tex; }
+// Загружаем системные текстуры
+if (DATA.systemTextures) {
+    for (const [name, b64] of Object.entries(DATA.systemTextures)) {
+        const tex = createTextureFromBase64(b64);
+        if(tex) textureData[name] = tex;
+    }
+}
+(DATA.userTextures||[]).forEach(ut => {
+    const tex = createTextureFromBase64(ut.dataURL);
+    if(tex) textureData[ut.name] = tex;
+});
+
+// Сцена
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x6da5c9);
+scene.fog = new THREE.Fog(0x6da5c9, Math.min(DATA.mapSize*0.8,120), Math.min(DATA.mapSize*1.2,200));
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 300);
+camera.position.set(0, 1.7, 0);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// Освещение
+const ambient = new THREE.AmbientLight(0x404060,0.5); scene.add(ambient);
+const sun = new THREE.DirectionalLight(0xffeedd,1.8);
+sun.position.set(30,40,20); sun.castShadow = true;
+sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048;
+sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 150;
+sun.shadow.camera.left = -DATA.mapSize/2; sun.shadow.camera.right = DATA.mapSize/2;
+sun.shadow.camera.top = DATA.mapSize/2; sun.shadow.camera.bottom = -DATA.mapSize/2;
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0x8888ff,0.3); fill.position.set(-20,10,-20); scene.add(fill);
+
+// Ландшафт
+const geo = new THREE.PlaneGeometry(DATA.mapSize, DATA.mapSize, DATA.segments, DATA.segments);
+geo.rotateX(-Math.PI/2);
+const pos = geo.attributes.position;
+for (let i=0; i<pos.count; i++) {
+    pos.setX(i, DATA.terrain.origX[i]);
+    pos.setZ(i, DATA.terrain.origZ[i]);
+    pos.setY(i, DATA.terrain.heights[i] || 0);
+}
+pos.needsUpdate = true;
+geo.computeVertexNormals();
+const matTerrain = new THREE.MeshStandardMaterial({ color:0x6da56a, roughness:0.8, metalness:0, side:THREE.DoubleSide });
+const terrain = new THREE.Mesh(geo, matTerrain);
+terrain.receiveShadow = true; terrain.castShadow = true;
+scene.add(terrain);
+
+// Объекты (визуальные)
+const doorObjects = [];
+const worldObjects = [];
+DATA.objects.forEach(objData => {
+    const pos = new THREE.Vector3(...objData.data.position);
+    const rot = new THREE.Euler(...objData.data.rotation);
+    const sca = new THREE.Vector3(...objData.data.scale);
+    let mesh;
+    if (objData.type === 'wall') {
+        const w = objData.data.width || 0.3;
+        const h = objData.data.height || 2.5;
+        const l = objData.data.len || 1;
+        const tex = textureData[objData.data.texture] || null;
+        const mat = new THREE.MeshStandardMaterial({ map:tex || undefined, color:tex?0xffffff:0xbc8f4f, roughness:0.7 });
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,l), mat);
+        mesh.position.copy(pos); mesh.rotation.copy(rot); mesh.scale.copy(sca);
+        mesh.castShadow = true; mesh.receiveShadow = true;
+        scene.add(mesh);
+    } else if (objData.type === 'door') {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color:0x8B5A2B, roughness:0.8 });
+        const doorMesh = new THREE.Mesh(new THREE.BoxGeometry(0.8,2.0,0.05), mat);
+        doorMesh.position.y = 1.0; doorMesh.castShadow = true;
+        group.add(doorMesh);
+        const hMat = new THREE.MeshStandardMaterial({ color:0xffaa00, metalness:0.8, roughness:0.2 });
+        const handle = new THREE.Mesh(new THREE.SphereGeometry(0.06,8,8), hMat);
+        handle.position.set(0.35,1.0,0.04);
+        group.add(handle);
+        group.position.copy(pos); group.rotation.copy(rot); group.scale.copy(sca);
+        group.userData.isOpen = false;
+        group.userData.doorMesh = doorMesh;
+        scene.add(group);
+        doorObjects.push(group);
+        mesh = group;
+    } else if (objData.type === 'user_sprite') {
+        const tex = textureData[objData.data.texture];
+        if (tex) {
+            const mat = new THREE.SpriteMaterial({ map:tex, transparent:true, depthTest:true, depthWrite:false });
+            mesh = new THREE.Sprite(mat);
+            mesh.position.copy(pos); mesh.scale.copy(sca);
+            scene.add(mesh);
+        }
+    } else {
+        // Для оружия и патронов используем текстуры, если есть
+        let tex = null;
+        if (objData.type === 'sword') tex = textureData.machete;
+        else if (objData.type === 'rifle') tex = textureData.ak47;
+        else if (objData.type === 'shotgun') tex = textureData.drobavik;
+        else if (objData.type === 'rifle_ammo') tex = textureData.patronaak;
+        const mat = new THREE.MeshStandardMaterial({ 
+            map: tex || undefined,
+            color: tex ? 0xffffff : (objData.data.color || 0xffaa00),
+            roughness: tex ? 0.4 : 0.5,
+            metalness: tex ? 0.2 : 0.1
+        });
+        const size = objData.data.size || 0.6;
+        if (objData.type === 'cube') mesh = new THREE.Mesh(new THREE.BoxGeometry(size,size,size), mat);
+        else if (objData.type === 'sphere') mesh = new THREE.Mesh(new THREE.SphereGeometry(size/2,16,16), mat);
+        else if (objData.type === 'cylinder') mesh = new THREE.Mesh(new THREE.CylinderGeometry(size/2,size/2,size,12), mat);
+        else if (objData.type === 'pistol_ammo' || objData.type === 'shotgun_ammo' || objData.type === 'sniper_ammo' || objData.type === 'rifle_ammo') {
+            // патроны – коробка
+            mesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.15), mat);
+        } else {
+            mesh = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), mat);
+        }
+        mesh.position.copy(pos); mesh.rotation.copy(rot); mesh.scale.copy(sca);
+        mesh.castShadow = true; mesh.receiveShadow = true;
+        scene.add(mesh);
+    }
+    if (mesh) {
+        mesh.userData.objType = objData.type;
+        mesh.userData.picked = false;
+        worldObjects.push(mesh);
+    }
+});
+
+// ФИЗИКА
+const world = new CANNON.World();
+world.gravity.set(0,-9.82,0);
+const groundMat = new CANNON.Material('ground');
+const objectMat = new CANNON.Material('object');
+const playerMat = new CANNON.Material('player');
+world.addContactMaterial(new CANNON.ContactMaterial(groundMat, objectMat, { friction:0.5, restitution:0.0 }));
+world.addContactMaterial(new CANNON.ContactMaterial(objectMat, objectMat, { friction:0.3, restitution:0.0 }));
+world.addContactMaterial(new CANNON.ContactMaterial(groundMat, playerMat, { friction:0.3, restitution:0.0 }));
+world.addContactMaterial(new CANNON.ContactMaterial(playerMat, objectMat, { friction:0.3, restitution:0.0 }));
+
+// Тримеш ландшафта
+const verts=[], inds=[];
+const pa=geo.attributes.position, ia=geo.index;
+for (let i=0; i<pa.count; i++) verts.push(pa.getX(i), pa.getY(i), pa.getZ(i));
+if (ia) { for (let i=0; i<ia.count; i++) inds.push(ia.getX(i)); }
+else { for (let i=0; i<pa.count; i+=3) inds.push(i,i+1,i+2); }
+const tri = new CANNON.Trimesh(verts, inds);
+const groundBody = new CANNON.Body({ mass:0, material:groundMat });
+groundBody.addShape(tri);
+world.addBody(groundBody);
+
+// Физические тела
+DATA.objects.forEach(objData => {
+    if (objData.data.collision === false) return;
+    const pos = new THREE.Vector3(...objData.data.position);
+    const rot = new THREE.Euler(...objData.data.rotation);
+    let shape;
+    if (objData.type === 'wall') {
+        const w = objData.data.width || 0.3;
+        const h = objData.data.height || 2.5;
+        const l = objData.data.len || 1;
+        shape = new CANNON.Box(new CANNON.Vec3(w/2, h/2, l/2));
+    } else if (objData.type === 'door') {
+        shape = new CANNON.Box(new CANNON.Vec3(0.4, 1.0, 0.025));
+    } else if (objData.type === 'sphere') {
+        const r = (objData.data.size||0.6)/2;
+        shape = new CANNON.Sphere(r);
+    } else if (objData.type === 'cylinder') {
+        const r = (objData.data.size||0.6)/2;
+        const h = objData.data.size||0.6;
+        shape = new CANNON.Cylinder(r, r, h, 8);
+    } else if (objData.type === 'user_sprite') {
+        shape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.1));
+    } else {
+        const s = (objData.data.size||0.6)/2;
+        shape = new CANNON.Box(new CANNON.Vec3(s, s, s));
+    }
+    if (shape) {
+        const body = new CANNON.Body({ mass:0, material:objectMat });
+        body.addShape(shape);
+        body.position.set(pos.x, pos.y, pos.z);
+        body.quaternion.setFromEuler(rot.x, rot.y, rot.z);
+        world.addBody(body);
+    }
+});
+
+// Игрок
+const playerBody = new CANNON.Body({ mass:70, material:playerMat });
+playerBody.addShape(new CANNON.Sphere(0.4));
+playerBody.position.set(0,2,0);
+world.addBody(playerBody);
+
+// Инвентарь и оружие
+let inventory = [];
+let selectedSlot = 0;
+let health = 100;
+let ammo = { pistol: 0, rifle: 0, shotgun: 0, sniper: 0 };
+let currentWeaponType = null;
+let shootCooldown = 0;
+const weaponData = {
+    sword: { name: 'Мачете', damage: 20, range: 1.5, cooldown: 0.5, ammoType: null, icon: '🗡️' },
+    knife: { name: 'Нож', damage: 10, range: 1.2, cooldown: 0.3, ammoType: null, icon: '🔪' },
+    pistol: { name: 'Пистолет', damage: 15, range: 20, cooldown: 0.2, ammoType: 'pistol', maxAmmo: 12, icon: '🔫' },
+    rifle: { name: 'AK-47', damage: 8, range: 30, cooldown: 0.07, ammoType: 'rifle', maxAmmo: 30, icon: '🔫' },
+    shotgun: { name: 'Дробовик', damage: 25, range: 10, cooldown: 0.6, ammoType: 'shotgun', maxAmmo: 6, icon: '💥' },
+    sniper: { name: 'Снайперка', damage: 50, range: 50, cooldown: 1.2, ammoType: 'sniper', maxAmmo: 5, icon: '🎯' }
+};
+function addToInventory(type) {
+    if (type === 'medkit') { health = Math.min(100, health + 25); return; }
+    const existing = inventory.find(item => item === type);
+    if (!existing) {
+        inventory.push(type);
+        if (!currentWeaponType) currentWeaponType = type;
+        updateUI();
+    }
+}
+function updateUI() {
+    document.getElementById('health').textContent = '❤️ ' + Math.round(health);
+    let display = 'Руки';
+    if (currentWeaponType) {
+        const w = weaponData[currentWeaponType];
+        if (w) {
+            const ammoCount = w.ammoType ? ammo[w.ammoType] : '∞';
+            display = w.icon + ' ' + w.name + ': ' + ammoCount;
+        }
+    }
+    document.getElementById('weapon-display').textContent = display;
+}
+
+// Управление
+const keys = { w:false, a:false, s:false, d:false, space:false };
+document.addEventListener('keydown', (e) => {
+    switch(e.code) {
+        case 'KeyW': keys.w = true; e.preventDefault(); break;
+        case 'KeyA': keys.a = true; e.preventDefault(); break;
+        case 'KeyS': keys.s = true; e.preventDefault(); break;
+        case 'KeyD': keys.d = true; e.preventDefault(); break;
+        case 'Space': keys.space = true; e.preventDefault(); break;
+        case 'KeyF': {
+            const pPos = playerBody.position;
+            let nearDoor = null, minD = 5;
+            doorObjects.forEach(d => {
+                const dPos = d.position;
+                const dist = pPos.distanceTo(dPos);
+                if (dist < minD) { minD = dist; nearDoor = d; }
+            });
+            if (nearDoor) {
+                const isOpen = nearDoor.userData.isOpen || false;
+                nearDoor.userData.isOpen = !isOpen;
+                const doorMesh = nearDoor.userData.doorMesh;
+                if (doorMesh) {
+                    doorMesh.rotation.y = isOpen ? 0 : Math.PI/2;
+                }
+            }
+            e.preventDefault();
+            break;
+        }
+        case 'KeyG': {
+            const inv = document.getElementById('inventory');
+            if (inv.style.display === 'grid') {
+                inv.style.display = 'none';
+            } else {
+                renderInventory();
+                inv.style.display = 'grid';
+            }
+            e.preventDefault();
+            break;
+        }
+        case 'KeyR': {
+            if (currentWeaponType && weaponData[currentWeaponType].ammoType) {
+                const w = weaponData[currentWeaponType];
+                const need = w.maxAmmo - ammo[w.ammoType];
+                if (need > 0) {
+                    ammo[w.ammoType] = w.maxAmmo;
+                    updateUI();
+                }
+            }
+            break;
+        }
+    }
+});
+document.addEventListener('keyup', (e) => {
+    switch(e.code) {
+        case 'KeyW': keys.w = false; e.preventDefault(); break;
+        case 'KeyA': keys.a = false; e.preventDefault(); break;
+        case 'KeyS': keys.s = false; e.preventDefault(); break;
+        case 'KeyD': keys.d = false; e.preventDefault(); break;
+        case 'Space': keys.space = false; e.preventDefault(); break;
+    }
+});
+// Смена оружия колёсиком
+renderer.domElement.addEventListener('wheel', (e) => {
+    if (inventory.length === 0) return;
+    e.preventDefault();
+    const dir = Math.sign(e.deltaY) * -1;
+    selectedSlot = (selectedSlot + dir + inventory.length) % inventory.length;
+    currentWeaponType = inventory[selectedSlot];
+    updateUI();
+    renderInventory();
+});
+// Смена оружия цифрами 1-9
+document.addEventListener('keydown', (e) => {
+    const num = parseInt(e.key);
+    if (num >= 1 && num <= 9 && num <= inventory.length) {
+        selectedSlot = num - 1;
+        currentWeaponType = inventory[selectedSlot];
+        updateUI();
+        renderInventory();
+        e.preventDefault();
+    }
+});
+
+function renderInventory() {
+    const inv = document.getElementById('inventory');
+    inv.innerHTML = '';
+    inventory.forEach((type, index) => {
+        const slot = document.createElement('div');
+        slot.className = 'slot' + (index === selectedSlot ? ' selected' : '');
+        const w = weaponData[type];
+        slot.textContent = w ? w.icon : '❓';
+        slot.title = w ? w.name : type;
+        slot.addEventListener('click', () => {
+            selectedSlot = index;
+            currentWeaponType = inventory[selectedSlot];
+            updateUI();
+            renderInventory();
+        });
+        inv.appendChild(slot);
+    });
+}
+
+// Мышь
+let isLocked = false;
+renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock());
+document.addEventListener('pointerlockchange', () => isLocked = document.pointerLockElement === renderer.domElement);
+const euler = new THREE.Euler(0,0,0,'YXZ');
+document.addEventListener('mousemove', (e) => {
+    if (!isLocked) return;
+    euler.y -= e.movementX * 0.002;
+    euler.x -= e.movementY * 0.002;
+    euler.x = Math.max(-Math.PI/2.1, Math.min(Math.PI/2.1, euler.x));
+    camera.quaternion.setFromEuler(euler);
+});
+
+// Стрельба
+function shootRay() {
+    if (!currentWeaponType) return;
+    const w = weaponData[currentWeaponType];
+    if (!w) return;
+    if (w.ammoType) {
+        if (ammo[w.ammoType] <= 0) return;
+        ammo[w.ammoType]--;
+        const raycaster = new THREE.Raycaster();
+        raycaster.set(camera.position, camera.getWorldDirection(new THREE.Vector3()));
+        raycaster.far = w.range || 20;
+        const intersects = raycaster.intersectObjects(worldObjects, true);
+        if (intersects.length > 0) {
+            console.log('Попадание');
+        }
+        updateUI();
+    } else {
+        const raycaster = new THREE.Raycaster();
+        raycaster.set(camera.position, camera.getWorldDirection(new THREE.Vector3()));
+        raycaster.far = w.range || 1.5;
+        const intersects = raycaster.intersectObjects(worldObjects, true);
+        if (intersects.length > 0) {
+            console.log('Удар');
+        }
+    }
+}
+renderer.domElement.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    if (!isLocked) return;
+    if (shootCooldown > 0) return;
+    shootRay();
+    const w = currentWeaponType ? weaponData[currentWeaponType] : null;
+    shootCooldown = w ? w.cooldown : 0.2;
+});
+
+// Подбор предметов
+function checkPickup() {
+    const pPos = playerBody.position;
+    worldObjects.forEach(mesh => {
+        if (mesh.userData.picked) return;
+        const dist = pPos.distanceTo(mesh.position);
+        if (dist < 2) {
+            const type = mesh.userData.objType;
+            if (type) {
+                if (type === 'medkit') {
+                    health = Math.min(100, health + 25);
+                    mesh.userData.picked = true;
+                    scene.remove(mesh);
+                } else if (type === 'pistol_ammo') {
+                    ammo.pistol += 12;
+                    mesh.userData.picked = true;
+                    scene.remove(mesh);
+                } else if (type === 'rifle_ammo') {
+                    ammo.rifle += 30;
+                    mesh.userData.picked = true;
+                    scene.remove(mesh);
+                } else if (type === 'shotgun_ammo') {
+                    ammo.shotgun += 6;
+                    mesh.userData.picked = true;
+                    scene.remove(mesh);
+                } else if (type === 'sniper_ammo') {
+                    ammo.sniper += 5;
+                    mesh.userData.picked = true;
+                    scene.remove(mesh);
+                } else if (['sword','knife','pistol','rifle','shotgun','sniper'].includes(type)) {
+                    addToInventory(type);
+                    mesh.userData.picked = true;
+                    scene.remove(mesh);
+                }
+                updateUI();
+            }
+        }
+    });
+}
+
+// Цикл
+function animate() {
+    requestAnimationFrame(animate);
+    const forward = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+    forward.y = 0; forward.normalize();
+    const right = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
+    right.y = 0; right.normalize();
+    const move = new THREE.Vector3(0,0,0);
+    if (keys.w) move.add(forward);
+    if (keys.s) move.sub(forward);
+    if (keys.a) move.sub(right);
+    if (keys.d) move.add(right);
+    if (move.length() > 0) {
+        move.normalize().multiplyScalar(5);
+        playerBody.velocity.x = move.x;
+        playerBody.velocity.z = move.z;
+    } else {
+        playerBody.velocity.x *= 0.9;
+        playerBody.velocity.z *= 0.9;
+    }
+    if (keys.space && Math.abs(playerBody.velocity.y) < 0.01) {
+        playerBody.velocity.y = 5;
+    }
+    world.step(1/60, 0.016, 3);
+    camera.position.copy(playerBody.position);
+    camera.position.y += 1.7;
+
+    checkPickup();
+
+    if (shootCooldown > 0) shootCooldown -= 0.016;
+    renderer.render(scene, camera);
+}
+animate();
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+console.log('Игра запущена с текстурами оружия');
+<\/script>
+</body>
+</html>`;
+}
+
+// ----- ИМПОРТ HTML (загружает игру и извлекает данные) -----
+document.getElementById('import-html-btn').addEventListener('click', () => {
+    document.getElementById('import-html-input').click();
+});
+document.getElementById('import-html-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const htmlContent = ev.target.result;
+        const jsonMatch = htmlContent.match(/const DATA\s*=\s*({[\s\S]*?});/);
+        if (jsonMatch && jsonMatch[1]) {
+            try {
+                const data = JSON.parse(jsonMatch[1]);
+                clearAll();
+                if (data.userTextures) {
+                    userTextures = data.userTextures;
+                    updateUserPanel();
+                }
+                if (data.terrain && data.terrain.heights) {
+                    for (let i=0; i<Math.min(vertexCount, data.terrain.heights.length); i++) {
+                        heights[i] = data.terrain.heights[i] || 0;
+                    }
+                    updateTerrain();
+                }
+                if (data.objects) {
+                    data.objects.forEach(objData => {
+                        const pos = new THREE.Vector3(...objData.data.position);
+                        const rot = new THREE.Euler(...objData.data.rotation);
+                        const sca = new THREE.Vector3(...objData.data.scale);
+                        let obj;
+                        if (objData.type === 'wall') {
+                            const w = objData.data.width || 0.3;
+                            const h = objData.data.height || 2.5;
+                            const l = objData.data.len || 1;
+                            const tex = createTextureFromBase64(FALLBACK_TEXTURE_BASE64);
+                            const mat = new THREE.MeshStandardMaterial({ map:tex, color:0xffffff, roughness:0.7 });
+                            const wall = new THREE.Mesh(new THREE.BoxGeometry(w,h,l), mat);
+                            wall.position.copy(pos); wall.rotation.copy(rot); wall.scale.copy(sca);
+                            wall.castShadow = true; wall.receiveShadow = true;
+                            wall.userData.isObject = true;
+                            wall.userData.id = objData.id || objectIdCounter++;
+                            wall.userData.type = 'wall';
+                            wall.userData.wallType = objData.data.wallType || 'wood';
+                            wall.userData.width = w; wall.userData.height = h; wall.userData.length = l;
+                            wall.userData.collision = objData.data.collision !== undefined ? objData.data.collision : true;
+                            scene.add(wall);
+                            obj = { mesh:wall, id:wall.userData.id, type:'wall', data: {
+                                width:w, height:h, len:l,
+                                position: pos.clone(), rotation: rot.clone(), scale: sca.clone(),
+                                color: 0xffffff, texture: objData.data.texture || 'wood',
+                                collision: objData.data.collision !== undefined ? objData.data.collision : true,
+                                wallType: objData.data.wallType || 'wood'
+                            }};
+                        } else if (objData.type === 'door') {
+                            const group = new THREE.Group();
+                            const mat = new THREE.MeshStandardMaterial({ color:0x8B5A2B, roughness:0.8 });
+                            const doorMesh = new THREE.Mesh(new THREE.BoxGeometry(0.8,2.0,0.05), mat);
+                            doorMesh.position.y = 1.0; doorMesh.castShadow = true;
+                            group.add(doorMesh);
+                            const hMat = new THREE.MeshStandardMaterial({ color:0xffaa00, metalness:0.8, roughness:0.2 });
+                            const handle = new THREE.Mesh(new THREE.SphereGeometry(0.06,8,8), hMat);
+                            handle.position.set(0.35,1.0,0.04);
+                            group.add(handle);
+                            group.position.copy(pos); group.rotation.copy(rot); group.scale.copy(sca);
+                            group.userData.isObject = true;
+                            group.userData.id = objData.id || objectIdCounter++;
+                            group.userData.type = 'door';
+                            group.userData.isOpen = false;
+                            group.userData.doorMesh = doorMesh;
+                            group.userData.collision = objData.data.collision !== undefined ? objData.data.collision : true;
+                            scene.add(group);
+                            obj = { mesh:group, id:group.userData.id, type:'door', data: {
+                                position: pos.clone(), rotation: rot.clone(), scale: sca.clone(),
+                                color: 0x8B5A2B, texture: null,
+                                collision: objData.data.collision !== undefined ? objData.data.collision : true,
+                                isOpen: false
+                            }};
+                            doorObjects.push(obj);
+                        } else if (objData.type === 'user_sprite') {
+                            const u = userTextures.find(t => t.name === objData.data.texture);
+                            if (u) {
+                                const tex = createTextureFromBase64(u.dataURL);
+                                if (tex) {
+                                    const mat = new THREE.SpriteMaterial({ map:tex, transparent:true, depthTest:true, depthWrite:false });
+                                    const sprite = new THREE.Sprite(mat);
+                                    sprite.position.copy(pos); sprite.scale.copy(sca);
+                                    sprite.userData.isObject = true;
+                                    sprite.userData.id = objData.id || objectIdCounter++;
+                                    sprite.userData.type = 'user_sprite';
+                                    sprite.userData.userName = u.name;
+                                    sprite.userData.collision = objData.data.collision !== undefined ? objData.data.collision : true;
+                                    scene.add(sprite);
+                                    obj = { mesh:sprite, id:sprite.userData.id, type:'user_sprite', data: {
+                                        position: pos.clone(), rotation: rot.clone(), scale: sca.clone(),
+                                        color: 0xffffff, texture: u.name,
+                                        collision: objData.data.collision !== undefined ? objData.data.collision : true,
+                                        size: 1
+                                    }};
+                                }
+                            }
+                            if (!obj) {
+                                const mat = new THREE.MeshStandardMaterial({ color:0xffaa00 });
+                                const cube = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), mat);
+                                cube.position.copy(pos); cube.rotation.copy(rot); cube.scale.copy(sca);
+                                cube.castShadow = true; cube.receiveShadow = true;
+                                cube.userData.isObject = true; cube.userData.id = objData.id || objectIdCounter++;
+                                cube.userData.type = 'cube';
+                                cube.userData.collision = objData.data.collision !== undefined ? objData.data.collision : true;
+                                scene.add(cube);
+                                obj = { mesh:cube, id:cube.userData.id, type:'cube', data: {
+                                    position: pos.clone(), rotation: rot.clone(), scale: sca.clone(),
+                                    color: 0xffaa00, texture: null,
+                                    collision: objData.data.collision !== undefined ? objData.data.collision : true,
+                                    size: 0.6
+                                }};
+                            }
+                        } else {
+                            const mat = new THREE.MeshStandardMaterial({ color: objData.data.color || 0xffaa00, roughness:0.5, metalness:0.1 });
+                            let mesh;
+                            const size = objData.data.size || 0.6;
+                            if (objData.type === 'cube') mesh = new THREE.Mesh(new THREE.BoxGeometry(size,size,size), mat);
+                            else if (objData.type === 'sphere') mesh = new THREE.Mesh(new THREE.SphereGeometry(size/2,16,16), mat);
+                            else if (objData.type === 'cylinder') mesh = new THREE.Mesh(new THREE.CylinderGeometry(size/2,size/2,size,12), mat);
+                            else mesh = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), mat);
+                            mesh.position.copy(pos); mesh.rotation.copy(rot); mesh.scale.copy(sca);
+                            mesh.castShadow = true; mesh.receiveShadow = true;
+                            mesh.userData.isObject = true; mesh.userData.id = objData.id || objectIdCounter++;
+                            mesh.userData.type = objData.type;
+                            mesh.userData.collision = objData.data.collision !== undefined ? objData.data.collision : true;
+                            scene.add(mesh);
+                            obj = { mesh, id:mesh.userData.id, type:objData.type, data: {
+                                position: pos.clone(), rotation: rot.clone(), scale: sca.clone(),
+                                color: objData.data.color || 0xffaa00, texture: null,
+                                collision: objData.data.collision !== undefined ? objData.data.collision : true,
+                                size: size
+                            }};
+                        }
+                        if (obj) {
+                            sceneObjects.push(obj);
+                        }
+                    });
+                }
+                setStatus('HTML игра импортирована и данные восстановлены');
+                updateObjectList();
+            } catch (err) {
+                console.error(err);
+                setStatus('Ошибка импорта HTML (не найден JSON с данными)');
+            }
+        } else {
+            setStatus('Ошибка: в HTML не найден встроенный JSON');
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+});
+
+// ----- МОДАЛЬНЫЕ ОКНА -----
+const modal = document.getElementById('modal-overlay');
+const fileDrop = document.getElementById('file-drop');
+const fileInput = document.getElementById('file-input');
+const previewContainer = document.getElementById('preview-container');
+const previewImage = document.getElementById('preview-image');
+let selectedFile = null;
+
+document.getElementById('add-texture-btn').addEventListener('click', () => {
+    modal.style.display = 'flex';
+    document.getElementById('tex-name').value = '';
+    document.getElementById('tex-type').value = 'wall';
+    previewContainer.style.display = 'none';
+    selectedFile = null;
+});
+document.getElementById('modal-cancel').addEventListener('click', () => { modal.style.display = 'none'; });
+modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+
+fileDrop.addEventListener('dragover', (e) => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => { fileDrop.classList.remove('dragover'); });
+fileDrop.addEventListener('drop', (e) => {
+    e.preventDefault(); fileDrop.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileDrop.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+    if (!file.type.startsWith('image/')) { setStatus('Пожалуйста, выберите изображение'); return; }
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => { previewImage.src = e.target.result; previewContainer.style.display = 'block'; };
+    reader.readAsDataURL(file);
+}
+
+document.getElementById('modal-add').addEventListener('click', () => {
+    const name = document.getElementById('tex-name').value.trim();
+    const type = document.getElementById('tex-type').value;
+    if (!name) { setStatus('Введите название'); return; }
+    if (!selectedFile) { setStatus('Выберите изображение'); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const dataURL = e.target.result;
+        if (addUserTexture(name, type, dataURL)) {
+            modal.style.display = 'none';
+        }
+    };
+    reader.readAsDataURL(selectedFile);
+});
+
+// Функции предмета
+document.getElementById('func-cancel').addEventListener('click', () => {
+    document.getElementById('func-modal').style.display = 'none';
+});
+document.getElementById('func-apply').addEventListener('click', () => {
+    const func = document.getElementById('func-select').value;
+    const target = window._funcTarget;
+    if (target) {
+        applyFunctionToObject(target, func);
+        document.getElementById('func-modal').style.display = 'none';
+    }
 });
 
 // ----- ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ -----
 function setMode(mode) {
-    // Если активна призма — сбрасываем
     if (isGhostActive) removeGhost();
     currentMode = mode;
-    const names = {
-        terrain: 'Рельеф',
-        objects: 'Предметы',
-        walls: 'Стены',
-        select: 'Выделение',
-        delete: 'Удаление',
-        collision: 'Коллизия',
-        none: 'Нет'
-    };
+    const names = { terrain:'Рельеф', objects:'Предметы', walls:'Стены', select:'Выделение', delete:'Удаление', collision:'Коллизия', none:'Нет' };
     setStatus(`Режим: ${names[mode] || mode}`);
     const hints = {
         terrain: 'Клик по земле для изменения рельефа',
@@ -783,20 +2108,15 @@ function setMode(mode) {
         collision: 'Клик по объекту для переключения коллизии'
     };
     setHint(hints[mode] || '');
-    // Включаем/выключаем зум в зависимости от режима
     orbitControls.enableZoom = (mode !== 'walls' && mode !== 'objects');
 }
 
 // ----- ESCAPE -----
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        // Сбрасываем текущий режим и призму
         if (isGhostActive) removeGhost();
         setMode('none');
-        // Деактивируем все кнопки в панели
         document.querySelectorAll('#panel .items button, #panel .toggle-group button').forEach(b => b.classList.remove('active'));
-        // Убираем подсветку с кнопок активации
-        document.querySelectorAll('#panel .category button').forEach(b => b.style.background = '');
         setStatus('Действие отменено');
         setHint('Нажмите Escape для отмены');
         orbitControls.enableZoom = true;
@@ -804,20 +2124,31 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// ----- ОЧИСТКА -----
+document.getElementById('clear-all').addEventListener('click', () => {
+    if (confirm('Удалить всё?')) { clearAll(); setStatus('Всё очищено'); }
+});
+
 // ----- ИНИЦИАЛИЗАЦИЯ -----
 await loadTextures();
 initTerrain();
 setMode('none');
-
-// Демо-объекты
+// Демо-объекты с оружием и патронами
+createObject('sword', new THREE.Vector3(3,0,3));
+createObject('pistol', new THREE.Vector3(-3,0,-3));
+createObject('rifle', new THREE.Vector3(4,0,4));
+createObject('shotgun', new THREE.Vector3(-4,0,-4));
+createObject('rifle_ammo', new THREE.Vector3(5,0,5));
+createObject('medkit', new THREE.Vector3(0,0,5));
 createObject('cube', new THREE.Vector3(2,0.3,2), 0xff0000, 0.6);
 createObject('sphere', new THREE.Vector3(-2,0.3,-1), 0x00ff00, 0.8);
 createWall(-1,-1,2,-1,2.5,0.3,'stone');
 createWall(2,-1,2,2,2.5,0.3,'stone');
 createWall(2,2,-1,2,2.5,0.3,'stone2');
 createWall(-1,2,-1,-1,2.5,0.3,'wood');
+createObject('door', new THREE.Vector3(0,0,1.5));
 
-setStatus('Редактор 5.1 загружен. Нажмите Escape для отмены.');
+setStatus('Редактор загружен. Добавлены текстуры оружия. Экспортируйте игру!');
 
 // ----- АНИМАЦИЯ -----
 function animate() {
@@ -833,7 +2164,7 @@ window.addEventListener('resize', () => {
     renderer.setSize(w, h);
 });
 
-console.log('Редактор 5.1 загружен');
+console.log('Редактор загружен');
 </script>
 </body>
 </html>
