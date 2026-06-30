@@ -3,52 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Поляна от первого лица</title>
+    <title>Домик в деревне (от первого лица)</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         #info {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.7);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 8px;
-            pointer-events: none;
-            z-index: 100;
-            font-size: 14px;
-            user-select: none;
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(0,0,0,0.7); color: #fff;
+            padding: 10px 20px; border-radius: 8px;
+            pointer-events: none; z-index: 100;
+            font-size: 14px; user-select: none;
         }
         #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
+            position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            color: white;
-            font-size: 30px;
+            color: white; font-size: 30px;
             text-shadow: 0 0 4px black;
-            pointer-events: none;
-            z-index: 100;
+            pointer-events: none; z-index: 100;
             opacity: 0.5;
         }
         #lock-hint {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
+            position: absolute; bottom: 40px; left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.6);
-            color: #fff;
-            padding: 8px 20px;
-            border-radius: 30px;
-            font-size: 16px;
-            pointer-events: none;
-            z-index: 100;
+            background: rgba(0,0,0,0.6); color: #fff;
+            padding: 8px 20px; border-radius: 30px;
+            font-size: 16px; pointer-events: none; z-index: 100;
             transition: opacity 0.5s;
         }
     </style>
 </head>
 <body>
-    <div id="info">🌳 Поляна с домиком (вид от первого лица)</div>
+    <div id="info">🏡 Домик с настоящими окнами и дверью</div>
     <div id="crosshair">+</div>
     <div id="lock-hint">Кликните по сцене, чтобы захватить мышь</div>
 
@@ -70,7 +54,7 @@
         scene.fog = new THREE.Fog(0x87CEEB, 30, 60);
 
         const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(3, 1.7, 5); // рост 1.7
+        camera.position.set(5, 1.7, 7); // стартовая позиция
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -147,97 +131,173 @@
             [-1.5,-1,1,1], [1.5,-1,1,1]
         ].forEach(([x,z,w,h]) => pathPiece(x,z,w,h));
 
-        // ---------- Дом (упрощённый, но с дверью, окнами и правильной крышей) ----------
-        const house = new THREE.Group();
+        // ---------- Функция для создания стены с проёмами ----------
+        function createWallWithHoles(width, height, holes, material) {
+            // holes: массив объектов {x, y, w, h} – координаты центра отверстия в локальной плоскости (0,0 – центр стены)
+            // Создаём форму стены (прямоугольник) и вычитаем отверстия
+            const shape = new THREE.Shape();
+            const w2 = width / 2;
+            const h2 = height / 2;
+            shape.moveTo(-w2, -h2);
+            shape.lineTo(w2, -h2);
+            shape.lineTo(w2, h2);
+            shape.lineTo(-w2, h2);
+            shape.lineTo(-w2, -h2);
 
-        const W = 3.0, D = 4.0, H = 2.5;
-        const wallMat1 = new THREE.MeshStandardMaterial({ map: textures.stena, roughness: 0.6 });
-        const wallMat2 = new THREE.MeshStandardMaterial({ map: textures.stena2, roughness: 0.6 });
+            // Для каждого отверстия создаём путь и вырезаем
+            const holesPaths = holes.map(hole => {
+                const path = new THREE.Path();
+                const hw = hole.w / 2;
+                const hh = hole.h / 2;
+                const cx = hole.x;
+                const cy = hole.y;
+                path.moveTo(cx - hw, cy - hh);
+                path.lineTo(cx + hw, cy - hh);
+                path.lineTo(cx + hw, cy + hh);
+                path.lineTo(cx - hw, cy + hh);
+                path.lineTo(cx - hw, cy - hh);
+                return path;
+            });
+            shape.holes = holesPaths;
 
-        // Стены
-        function addWall(w, h, d, x, y, z, mat, rotY=0) {
-            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-            mesh.position.set(x, y, z);
-            mesh.rotation.y = rotY;
+            const geometry = new THREE.ShapeGeometry(shape);
+            const mesh = new THREE.Mesh(geometry, material);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
-            house.add(mesh);
+            return mesh;
         }
-        addWall(W, H, 0.1, 0, H/2, D/2, wallMat1); // перед
-        addWall(W, H, 0.1, 0, H/2, -D/2, wallMat2); // зад
-        addWall(0.1, H, D, -W/2, H/2, 0, wallMat2); // лево
-        addWall(0.1, H, D, W/2, H/2, 0, wallMat1); // право
+
+        // ---------- Построение дома ----------
+        const house = new THREE.Group();
+
+        const W = 3.0; // ширина
+        const D = 4.0; // глубина
+        const H = 2.5; // высота стен
+        const wallMat = new THREE.MeshStandardMaterial({ map: textures.stena, roughness: 0.6 });
+        const wallMat2 = new THREE.MeshStandardMaterial({ map: textures.stena2, roughness: 0.6 });
+
+        // Передняя стена (Z = +D/2) – с дверью и двумя окнами
+        const frontHoles = [
+            { x: 0, y: 0.2, w: 0.7, h: 1.8 },   // дверь (ниже центр)
+            { x: -1.0, y: 0.9, w: 0.6, h: 0.8 }, // левое окно
+            { x: 1.0, y: 0.9, w: 0.6, h: 0.8 }   // правое окно
+        ];
+        const frontWall = createWallWithHoles(W, H, frontHoles, wallMat);
+        frontWall.position.set(0, H/2, D/2);
+        house.add(frontWall);
+
+        // Задняя стена (Z = -D/2) – без отверстий
+        const backWall = new THREE.Mesh(
+            new THREE.PlaneGeometry(W, H),
+            wallMat2
+        );
+        backWall.position.set(0, H/2, -D/2);
+        backWall.rotation.y = Math.PI;
+        backWall.castShadow = true;
+        backWall.receiveShadow = true;
+        house.add(backWall);
+
+        // Левая стена (X = -W/2) – с одним окном
+        const leftHoles = [
+            { x: 0, y: 0.9, w: 0.6, h: 0.8 }
+        ];
+        const leftWall = createWallWithHoles(D, H, leftHoles, wallMat2);
+        leftWall.position.set(-W/2, H/2, 0);
+        leftWall.rotation.y = -Math.PI/2;
+        house.add(leftWall);
+
+        // Правая стена (X = +W/2) – с одним окном
+        const rightHoles = [
+            { x: 0, y: 0.9, w: 0.6, h: 0.8 }
+        ];
+        const rightWall = createWallWithHoles(D, H, rightHoles, wallMat);
+        rightWall.position.set(W/2, H/2, 0);
+        rightWall.rotation.y = Math.PI/2;
+        house.add(rightWall);
 
         // Пол
-        const floor = new THREE.Mesh(
-            new THREE.BoxGeometry(W, 0.1, D),
-            new THREE.MeshStandardMaterial({ map: textures.dpol, roughness: 0.7 })
-        );
-        floor.position.y = 0.05;
+        const floorMat = new THREE.MeshStandardMaterial({ map: textures.dpol, roughness: 0.7 });
+        const floor = new THREE.Mesh(new THREE.BoxGeometry(W, 0.1, D), floorMat);
+        floor.position.set(0, 0.05, 0);
         floor.receiveShadow = true;
         floor.castShadow = true;
         house.add(floor);
 
-        // ---- Дверь (на передней стене) ----
+        // Потолок (необязательно, но можно)
+        const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(W, D), floorMat);
+        ceiling.position.set(0, H, 0);
+        ceiling.rotation.x = -Math.PI/2;
+        ceiling.receiveShadow = true;
+        house.add(ceiling);
+
+        // ---------- Дверь (в проёме) ----------
         const doorMat = new THREE.MeshStandardMaterial({ map: textures.dpol, roughness: 0.8 });
-        const door = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 1.8), doorMat);
-        door.position.set(0, 0.9, D/2 + 0.01);
+        const door = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 1.7), doorMat);
+        door.position.set(0, 0.2, D/2 + 0.01);
+        door.castShadow = true;
         house.add(door);
         // Ручка
         const handle = new THREE.Mesh(
             new THREE.SphereGeometry(0.06, 8, 8),
             new THREE.MeshStandardMaterial({ color: 0xffaa00, metalness: 0.8, roughness: 0.2 })
         );
-        handle.position.set(0.25, 0.9, D/2 + 0.05);
+        handle.position.set(0.25, 0.2, D/2 + 0.05);
         house.add(handle);
 
-        // ---- Окна (два спереди, по бокам от двери) ----
-        function makeWindow(x, y, z, rotY=0) {
-            const g = new THREE.Group();
-            // Стекло
-            const glass = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.6, 0.8),
-                new THREE.MeshStandardMaterial({ color: 0x88ccff, transparent: true, opacity: 0.5, roughness: 0.1 })
-            );
-            glass.position.z = 0.01;
-            g.add(glass);
+        // ---------- Окна (стекло + рама) в проёмах ----------
+        function createWindowInHole(x, y, z, rotY = 0) {
+            const group = new THREE.Group();
+            // Стекло (чуть позади, чтобы не вылезало)
+            const glassMat = new THREE.MeshStandardMaterial({
+                color: 0x88ccff,
+                transparent: true,
+                opacity: 0.5,
+                roughness: 0.1,
+                metalness: 0.3
+            });
+            const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.7), glassMat);
+            glass.position.z = -0.02;
+            group.add(glass);
+
             // Рама (крест)
             const frameMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
-            const hbar = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.04, 0.04), frameMat);
-            hbar.position.y = 0.4;
-            g.add(hbar);
-            const hbar2 = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.04, 0.04), frameMat);
-            hbar2.position.y = -0.4;
-            g.add(hbar2);
-            const vbar = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.85, 0.04), frameMat);
-            vbar.position.x = 0.3;
-            g.add(vbar);
-            const vbar2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.85, 0.04), frameMat);
-            vbar2.position.x = -0.3;
-            g.add(vbar2);
+            const hbar = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.04, 0.04), frameMat);
+            hbar.position.y = 0.3;
+            group.add(hbar);
+            const hbar2 = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.04, 0.04), frameMat);
+            hbar2.position.y = -0.3;
+            group.add(hbar2);
+            const vbar = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.75, 0.04), frameMat);
+            vbar.position.x = 0.25;
+            group.add(vbar);
+            const vbar2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.75, 0.04), frameMat);
+            vbar2.position.x = -0.25;
+            group.add(vbar2);
             // Рамка
-            const border = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.85, 0.05), frameMat);
-            border.position.z = -0.01;
-            g.add(border);
+            const border = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.76, 0.06), frameMat);
+            border.position.z = 0;
+            group.add(border);
 
-            g.position.set(x, y, z);
-            g.rotation.y = rotY;
-            return g;
+            group.position.set(x, y, z);
+            group.rotation.y = rotY;
+            return group;
         }
 
-        house.add(makeWindow(-0.9, 1.6, D/2 + 0.01, 0));
-        house.add(makeWindow(0.9, 1.6, D/2 + 0.01, 0));
-        house.add(makeWindow(-W/2 - 0.01, 1.6, 0.8, Math.PI/2));
-        house.add(makeWindow(W/2 + 0.01, 1.6, -0.8, -Math.PI/2));
+        // Передние окна
+        house.add(createWindowInHole(-1.0, 0.9, D/2 + 0.02, 0));
+        house.add(createWindowInHole(1.0, 0.9, D/2 + 0.02, 0));
+        // Боковые окна
+        house.add(createWindowInHole(-W/2 - 0.02, 0.9, 0, Math.PI/2));
+        house.add(createWindowInHole(W/2 + 0.02, 0.9, 0, -Math.PI/2));
 
-        // ---- Крыша (две наклонные плоскости) ----
+        // ---------- Крыша (двускатная) ----------
         const roofMat = new THREE.MeshStandardMaterial({ map: textures.dpol, roughness: 0.8, side: THREE.DoubleSide });
-        const overhang = 0.4;
+        const overhang = 0.5;
         const roofW = W + overhang * 2;
         const roofD = D + overhang * 2;
         const roofH = 1.2;
 
-        // Длина ската
+        // Скаты – два прямоугольника
         const slopeLen = Math.sqrt((roofD/2)**2 + roofH**2);
         const angle = Math.atan2(roofH, roofD/2);
 
@@ -257,7 +317,7 @@
         slope2.receiveShadow = true;
         house.add(slope2);
 
-        // Фронтоны (треугольные заглушки) – опционально, но добавим для красоты
+        // Фронтоны (треугольные заглушки) – закрывают торцы
         const triShape = new THREE.Shape();
         triShape.moveTo(-roofW/2, 0);
         triShape.lineTo(0, roofH);
@@ -287,6 +347,16 @@
         ridge.castShadow = true;
         house.add(ridge);
 
+        // Крыльцо (ступенька)
+        const stepMat = new THREE.MeshStandardMaterial({ map: textures.dpol, roughness: 0.8 });
+        const step = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 0.6), stepMat);
+        step.position.set(0, 0.05, D/2 + 0.3);
+        step.receiveShadow = true;
+        step.castShadow = true;
+        house.add(step);
+
+        // Добавляем дом в сцену
+        house.position.set(0, 0, 0);
         scene.add(house);
 
         // ---------- Деревья (крест-накрест, статичные) ----------
@@ -329,10 +399,8 @@
         // ---------- Управление от первого лица ----------
         const euler = new THREE.Euler(0, 0, 0, 'YXZ');
         const PI_2 = Math.PI / 2;
-
         let isLocked = false;
 
-        // Обработка Pointer Lock
         renderer.domElement.addEventListener('click', () => {
             if (!isLocked) {
                 renderer.domElement.requestPointerLock();
@@ -344,20 +412,16 @@
             document.getElementById('lock-hint').style.opacity = isLocked ? '0' : '1';
         });
 
-        // Движение мыши
         document.addEventListener('mousemove', (e) => {
             if (!isLocked) return;
             const movementX = e.movementX || 0;
             const movementY = e.movementY || 0;
-
             euler.y -= movementX * 0.002;
             euler.x -= movementY * 0.002;
             euler.x = Math.max(-PI_2, Math.min(PI_2, euler.x));
-
             camera.quaternion.setFromEuler(euler);
         });
 
-        // Клавиши WASD
         const keys = { w: false, a: false, s: false, d: false };
         document.addEventListener('keydown', (e) => {
             switch(e.code) {
@@ -383,7 +447,6 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Движение
             if (isLocked) {
                 const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
                 const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
@@ -406,14 +469,13 @@
 
         animate();
 
-        // ---------- Ресайз ----------
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        console.log('Игра запущена. Кликните для захвата мыши, WASD — ходьба.');
+        console.log('Дом с проёмами загружен! Кликните для захвата мыши.');
     </script>
 </body>
-</html>
+</html>ы
