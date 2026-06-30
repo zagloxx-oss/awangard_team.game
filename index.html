@@ -3,1499 +3,837 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактор миров 3.0 (двойной клик)</title>
+    <title>Редактор миров 5.1</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #fff; }
-        #canvas-container { width: 100vw; height: 100vh; display: block; }
-
-        /* Панель инструментов */
-        #toolbar {
-            position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
-            background: rgba(20,20,36,0.85); backdrop-filter: blur(10px);
-            padding: 8px 16px; border-radius: 40px;
-            display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
-            border: 1px solid rgba(255,255,255,0.06);
-            z-index: 10; box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-            pointer-events: auto;
-            max-width: 96%;
-        }
-        #toolbar button, #toolbar .group-btn {
-            background: rgba(255,255,255,0.06);
-            border: none; color: #ccc;
-            padding: 6px 14px; border-radius: 30px;
-            font-size: 13px; cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-            border: 1px solid transparent;
-            display: inline-flex; align-items: center; gap: 4px;
-        }
-        #toolbar button:hover, #toolbar .group-btn:hover {
-            background: rgba(255,255,255,0.15);
-        }
-        #toolbar button.active {
-            background: #4a9eff; color: #fff; border-color: #4a9eff;
-            box-shadow: 0 0 20px rgba(74,158,255,0.25);
-        }
-        #toolbar button.danger {
-            background: rgba(255,70,70,0.2);
-        }
-        #toolbar button.danger:hover {
-            background: rgba(255,70,70,0.4);
-        }
-        #toolbar .separator {
-            width: 1px; background: rgba(255,255,255,0.1);
-            margin: 0 4px;
-        }
-        #toolbar .transform-btn {
-            background: rgba(255,255,255,0.05);
-            padding: 4px 10px;
-        }
-        #toolbar .transform-btn.active {
-            background: #6c5ce7;
-            border-color: #6c5ce7;
-        }
-
-        /* Статус */
-        #status {
-            position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-            padding: 8px 24px; border-radius: 40px;
-            font-size: 14px; color: #ddd;
-            z-index: 10; pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.05);
-            text-align: center;
-            max-width: 90%;
-        }
-        #hint {
-            position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.4); padding: 4px 16px; border-radius: 20px;
-            font-size: 13px; color: #aaa; z-index: 10; pointer-events: none;
-            white-space: nowrap;
-        }
-
-        /* Настройки кисти (рельеф) */
-        #brush-settings {
-            position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
-            background: rgba(20,20,36,0.85); backdrop-filter: blur(8px);
-            padding: 8px 20px; border-radius: 30px;
-            display: none; gap: 20px; align-items: center;
-            border: 1px solid rgba(255,255,255,0.06);
-            z-index: 10; font-size: 14px; color: #ccc;
-            pointer-events: auto;
-        }
-        #brush-settings label { display: flex; align-items: center; gap: 8px; }
-        #brush-settings input[type="range"] { width: 100px; accent-color: #4a9eff; }
-
-        /* Палитра предметов */
-        #object-palette {
-            position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
-            background: rgba(20,20,36,0.85); backdrop-filter: blur(8px);
-            padding: 8px 16px; border-radius: 30px;
-            display: none; gap: 8px; flex-wrap: wrap; justify-content: center;
-            border: 1px solid rgba(255,255,255,0.06);
-            z-index: 10; pointer-events: auto;
-        }
-        #object-palette button {
-            background: rgba(255,255,255,0.06);
-            border: none; color: #ccc;
-            padding: 6px 14px; border-radius: 20px;
-            cursor: pointer; font-size: 13px;
-            transition: 0.2s;
-        }
-        #object-palette button:hover { background: rgba(255,255,255,0.15); }
-        #object-palette button.active { background: #4a9eff; color: #fff; }
-
-        /* Панель свойств */
-        #properties {
-            position: absolute; right: 20px; top: 80px;
-            background: rgba(20,20,36,0.9); backdrop-filter: blur(10px);
-            padding: 16px; border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.06);
-            width: 240px; z-index: 10;
-            display: none;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-            pointer-events: auto;
-            color: #ccc;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        #properties h3 { margin: 0 0 12px 0; font-size: 16px; color: #fff; }
-        #properties label { display: block; font-size: 13px; margin: 8px 0 4px; }
-        #properties input[type="number"],
-        #properties input[type="color"],
-        #properties select {
-            width: 100%; padding: 4px 8px;
-            background: #2a2a3a; border: 1px solid #444;
-            border-radius: 6px; color: #fff;
-            font-size: 13px;
-        }
-        #properties input[type="color"] { height: 36px; padding: 2px; }
-        #properties input[type="checkbox"] { width: auto; margin-top: 6px; }
-        #properties .row { display: flex; gap: 8px; align-items: center; }
-        #properties .row label { margin: 0; }
-        #properties .prop-btn {
-            margin-top: 12px;
-            background: #4a9eff; border: none;
-            color: #fff; padding: 6px 0;
-            border-radius: 6px; cursor: pointer;
-            width: 100%; font-size: 14px;
-        }
-        #properties .prop-btn:hover { background: #3a8eef; }
-
-        /* Крестик */
-        .crosshair {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            color: rgba(255,255,255,0.08);
-            font-size: 36px; pointer-events: none; z-index: 5;
-            font-weight: 100;
-        }
-
-        @media (max-width: 700px) {
-            #toolbar button { font-size: 11px; padding: 4px 10px; }
-            #properties { width: 200px; right: 10px; }
-            #hint { font-size: 11px; white-space: normal; bottom: 100px; }
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{overflow:hidden;font-family:'Segoe UI',sans-serif;background:#1a1a2e;color:#fff}
+        #container{display:flex;width:100vw;height:100vh}
+        #canvas-wrap{flex:1;position:relative}
+        #canvas-wrap canvas{display:block;width:100%;height:100%}
+        /* Правая панель */
+        #panel{width:260px;background:rgba(20,20,36,0.95);backdrop-filter:blur(10px);border-left:1px solid rgba(255,255,255,0.06);padding:16px 12px;overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;gap:12px}
+        #panel h2{font-size:16px;font-weight:400;color:#aaa;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px;margin-bottom:4px}
+        #panel .category{background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px}
+        #panel .category .title{font-size:13px;font-weight:500;color:#ccc;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+        #panel .category .items{display:flex;flex-wrap:wrap;gap:4px}
+        #panel .category .items button{background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 10px;border-radius:16px;font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap;border:1px solid transparent}
+        #panel .category .items button:hover{background:rgba(255,255,255,0.15)}
+        #panel .category .items button.active{background:#4a9eff;color:#fff;border-color:#4a9eff}
+        #panel .category .items button.danger{background:rgba(255,70,70,0.2)}
+        #panel .category .items button.danger:hover{background:rgba(255,70,70,0.4)}
+        #panel .slider-group{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+        #panel .slider-group label{font-size:12px;color:#aaa;display:flex;justify-content:space-between}
+        #panel .slider-group input[type=range]{width:100%;accent-color:#4a9eff;background:#333;height:4px;border-radius:2px}
+        #panel .toggle-group{display:flex;gap:6px;flex-wrap:wrap}
+        #panel .toggle-group button{flex:1;background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 0;border-radius:16px;font-size:12px;cursor:pointer;transition:all .2s;border:1px solid transparent}
+        #panel .toggle-group button.active{background:#4a9eff;color:#fff;border-color:#4a9eff}
+        #panel .toggle-group button.danger{background:rgba(255,70,70,0.2)}
+        #panel .toggle-group button.danger.active{background:#ff4444;color:#fff}
+        #panel .category .items button.col-btn{background:rgba(255,255,255,0.04);padding:4px 12px}
+        #panel .category .items button.col-btn.active{background:#6c5ce7;border-color:#6c5ce7}
+        #panel .category .items button.trans-btn{background:rgba(255,255,255,0.04);padding:4px 12px}
+        #panel .category .items button.trans-btn.active{background:#6c5ce7;border-color:#6c5ce7}
+        /* Верхняя плашка */
+        #topbar{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(10,10,20,0.7);backdrop-filter:blur(8px);padding:6px 18px;border-radius:30px;border:1px solid rgba(255,255,255,0.06);z-index:20;display:flex;gap:12px;align-items:center;pointer-events:auto;font-size:13px}
+        #topbar button{background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 14px;border-radius:20px;cursor:pointer;transition:.2s;font-size:12px}
+        #topbar button:hover{background:rgba(255,255,255,0.15)}
+        #topbar .sep{width:1px;height:20px;background:rgba(255,255,255,0.1)}
+        #status{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);padding:6px 20px;border-radius:30px;font-size:13px;color:#ccc;z-index:15;pointer-events:none;border:1px solid rgba(255,255,255,0.05);white-space:nowrap}
+        #hint{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.4);padding:4px 16px;border-radius:20px;font-size:12px;color:#999;z-index:15;pointer-events:none;white-space:nowrap}
+        .crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.06);font-size:36px;pointer-events:none;z-index:5;font-weight:100}
+        @media(max-width:768px){#panel{width:200px;padding:10px 8px}#topbar{font-size:11px;padding:4px 12px}#topbar button{font-size:10px;padding:2px 10px}}
     </style>
 </head>
 <body>
-
-    <div class="crosshair">+</div>
-
-    <!-- Панель инструментов -->
-    <div id="toolbar">
-        <button data-mode="terrain" class="active">⛰️ Рельеф</button>
-        <button data-mode="wall">🧱 Стены</button>
-        <button data-mode="object">📦 Предметы</button>
-        <button data-mode="select">🖱️ Выделить</button>
-        <button data-mode="delete" class="danger">🗑️ Удалить</button>
-        <div class="separator"></div>
-        <button id="btn-group" class="group-btn">📁 Группа</button>
-        <button id="btn-ungroup" class="group-btn">📂 Разгр.</button>
-        <div class="separator"></div>
-        <button id="btn-translate" class="transform-btn active">⟷</button>
-        <button id="btn-rotate" class="transform-btn">↻</button>
-        <button id="btn-scale" class="transform-btn">⤡</button>
-        <div class="separator"></div>
-        <button id="btn-save-project">💾 Сохранить</button>
-        <button id="btn-load-project">📂 Загрузить</button>
-        <button id="btn-export-game">⬇️ Экспорт HTML</button>
-        <button id="btn-clear" class="danger">❌ Очистить</button>
+<div id="container">
+    <div id="canvas-wrap">
+        <div class="crosshair">+</div>
+        <div id="topbar">
+            <span style="color:#aaa;">📁 Проект</span>
+            <button id="save-json">💾 Сохранить JSON</button>
+            <button id="export-html">⬇️ Экспорт HTML</button>
+            <div class="sep"></div>
+            <button id="clear-all" style="color:#ff6b6b;">❌ Очистить</button>
+        </div>
+        <div id="status">Нажмите Escape для отмены действия</div>
+        <div id="hint">Выберите инструмент справа</div>
     </div>
+    <div id="panel">
+        <h2>🛠 Инструменты</h2>
 
-    <!-- Настройки кисти (рельеф) -->
-    <div id="brush-settings">
-        <label>Радиус <input type="range" id="brush-radius" min="0.5" max="8" step="0.1" value="3"><span id="radius-label">3.0</span></label>
-        <label>Сила <input type="range" id="brush-strength" min="0.1" max="2" step="0.1" value="0.6"><span id="strength-label">0.6</span></label>
+        <div class="category">
+            <div class="title">⛰️ Рельеф</div>
+            <div class="toggle-group" id="relief-mode">
+                <button data-relief="raise" class="active">Поднять</button>
+                <button data-relief="lower">Опустить</button>
+            </div>
+            <div class="slider-group">
+                <label>Радиус <span id="radius-label">3.0</span></label>
+                <input type="range" id="brush-radius" min="0.5" max="10" step="0.1" value="3">
+                <label>Сила <span id="strength-label">0.6</span></label>
+                <input type="range" id="brush-strength" min="0.1" max="2" step="0.1" value="0.6">
+            </div>
+            <div style="margin-top:6px;">
+                <button id="relief-activate" class="active" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:16px;font-size:12px;cursor:pointer;">Включить рельеф</button>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="title">📦 Предметы</div>
+            <div class="items" id="object-items">
+                <button data-object="cube" class="active">Куб</button>
+                <button data-object="sphere">Сфера</button>
+                <button data-object="cylinder">Цил.</button>
+                <button data-object="tree">Дерево</button>
+                <button data-object="table">Стол</button>
+                <button data-object="chair">Стул</button>
+                <button data-object="lamp">Торшер</button>
+            </div>
+            <div style="margin-top:6px;">
+                <button id="object-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:16px;font-size:12px;cursor:pointer;">Включить предметы</button>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="title">🧱 Стены</div>
+            <div class="items" id="wall-items">
+                <button data-wall="wood" class="active">Дерево</button>
+                <button data-wall="stone">Камень</button>
+                <button data-wall="stone2">Камень 2</button>
+            </div>
+            <div style="margin-top:6px;">
+                <button id="wall-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:16px;font-size:12px;cursor:pointer;">Включить стены</button>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="title">⚡ Коллизия</div>
+            <div class="items">
+                <button id="collision-toggle" class="col-btn">Назначить</button>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="title">🔄 Трансформация</div>
+            <div class="items">
+                <button id="trans-translate" class="trans-btn active">⟷</button>
+                <button id="trans-rotate" class="trans-btn">↻</button>
+                <button id="trans-scale" class="trans-btn">⤡</button>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="title">🎯 Действия</div>
+            <div class="items">
+                <button id="select-mode" class="active">Выделить</button>
+                <button id="delete-mode" class="danger">Удалить</button>
+                <button id="group-btn">📁 Группа</button>
+                <button id="ungroup-btn">📂 Разгр.</button>
+            </div>
+        </div>
     </div>
+</div>
 
-    <!-- Палитра предметов -->
-    <div id="object-palette">
-        <button data-object="cube" class="active">🧊 Куб</button>
-        <button data-object="sphere">⚪ Сфера</button>
-        <button data-object="cylinder">🥫 Цилиндр</button>
-        <button data-object="tree">🌳 Дерево</button>
-        <button data-object="table">🪑 Стол</button>
-        <button data-object="chair">💺 Стул</button>
-        <button data-object="lamp">💡 Торшер</button>
-    </div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-    <!-- Панель свойств -->
-    <div id="properties">
-        <h3>Свойства</h3>
-        <div id="prop-content"></div>
-    </div>
+// ----- КОНСТАНТЫ -----
+const MAP_SIZE=100, SEGMENTS=80, MAX_HEIGHT=20, MIN_HEIGHT=-20;
+const WALL_HEIGHT_DEFAULT=2.5, WALL_WIDTH_DEFAULT=0.3, SNAP_GRID=0.5;
+const FALLBACK_TEXTURE_BASE64='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARzQklUCAgICHwIZAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABdJREFUOE9j/P//PwM6YGL8TwD5QCwAEPQBDb2y80cAAAAASUVORK5CYII=';
 
-    <!-- Статус и подсказка -->
-    <div id="status">Режим: Рельеф — ЛКМ поднять, ПКМ опустить</div>
-    <div id="hint">Кликните по сцене для действия</div>
+// ----- СОСТОЯНИЕ -----
+let currentMode = 'none'; // 'terrain' | 'objects' | 'walls' | 'select' | 'delete' | 'collision' | 'none'
+let reliefAction = 'raise';
+let selectedObject = null;
+let selectedObjects = [];
+let objectIdCounter = 0;
+const sceneObjects = [];
+let clipboard = null;
+let snapEnabled = true;
+let physicsEnabled = false;
+let physicsWorld = null;
+let physicsBodies = [];
 
-    <!-- Скрытый input для загрузки -->
-    <input type="file" id="file-input" accept=".json" style="display:none">
+let ghostObject = null;
+let ghostStartPoint = null;
+let isGhostActive = false;
+let ghostType = null; // 'wall' | 'object'
+let ghostData = {};
+let currentWallType = 'wood';
+let currentObjectType = 'cube';
+let currentTransformMode = 'translate';
+let ghostSmoothTarget = null;
 
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
+const textureData = {};
+const textureNames = ['trawa','stena','stena2','dpol','zemla','zemla2','nebo','bereza'];
+const textureExtensions = {trawa:'jpg',stena:'jpg',stena2:'jpg',dpol:'jpg',zemla:'jpg',zemla2:'jpg',nebo:'jpg',bereza:'png'};
+
+// ----- СЦЕНА -----
+const container = document.getElementById('canvas-wrap');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x6da5c9);
+scene.fog = new THREE.Fog(0x6da5c9,60,120);
+
+const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 200);
+camera.position.set(15,12,20);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+container.appendChild(renderer.domElement);
+
+// ----- УПРАВЛЕНИЕ КАМЕРОЙ -----
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.enableDamping = true;
+orbitControls.dampingFactor = 0.08;
+orbitControls.maxPolarAngle = Math.PI / 2.1;
+orbitControls.minDistance = 2;
+orbitControls.maxDistance = 80;
+orbitControls.target.set(0,0,0);
+orbitControls.update();
+
+// ----- TRANSFORM CONTROLS -----
+const transformControls = new TransformControls(camera, renderer.domElement);
+transformControls.setSize(0.6);
+scene.add(transformControls);
+transformControls.addEventListener('dragging-changed', (e) => { orbitControls.enabled = !e.value; });
+transformControls.addEventListener('objectChange', () => {
+    if (selectedObject) {
+        const m = selectedObject.mesh;
+        if (m) {
+            selectedObject.data.position.copy(m.position);
+            selectedObject.data.rotation.copy(m.rotation);
+            selectedObject.data.scale.copy(m.scale);
         }
-    </script>
+    }
+});
 
-    <script type="module">
-        // ----- ИМПОРТЫ -----
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+// ----- ОСВЕЩЕНИЕ -----
+const ambient = new THREE.AmbientLight(0x404060,0.5); scene.add(ambient);
+const sun = new THREE.DirectionalLight(0xffeedd,1.8);
+sun.position.set(30,40,20); sun.castShadow = true;
+sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048;
+sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 100;
+sun.shadow.camera.left = -50; sun.shadow.camera.right = 50;
+sun.shadow.camera.top = 50; sun.shadow.camera.bottom = -50;
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0x8888ff,0.3); fill.position.set(-20,10,-20); scene.add(fill);
 
-        // ----- КОНСТАНТЫ -----
-        const MAP_SIZE = 100;
-        const SEGMENTS = 64;
-        const MAX_HEIGHT = 5;
-        const WALL_HEIGHT_DEFAULT = 2.5;
-        const WALL_WIDTH_DEFAULT = 0.3;
-        const SNAP_GRID = 0.5; // шаг привязки к сетке
-
-        // ----- СОСТОЯНИЕ -----
-        let currentMode = 'terrain';
-        let selectedObject = null;
-        let selectedObjects = [];
-        let objectIdCounter = 0;
-        const sceneObjects = [];
-        let wallStartPoint = null;
-        let clipboard = null;
-        let snapEnabled = true;
-
-        // Для призмы (предпросмотр)
-        let ghostObject = null; // текущая призма (меш или группа)
-        let ghostStartPoint = null; // для стены — начальная точка
-        let isGhostActive = false;
-        let ghostType = null; // 'wall' или 'object'
-        let ghostData = null; // данные для создания объекта
-
-        // Текстуры (base64)
-        const textureData = {};
-        const textureNames = ['trawa', 'stena', 'stena2', 'dpol', 'zemla', 'zemla2', 'nebo', 'bereza'];
-        const textureExtensions = { trawa:'jpg', stena:'jpg', stena2:'jpg', dpol:'jpg', zemla:'jpg', zemla2:'jpg', nebo:'jpg', bereza:'png' };
-
-        // ----- СЦЕНА, КАМЕРА, РЕНДЕР -----
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x6da5c9);
-        scene.fog = new THREE.Fog(0x6da5c9, 60, 120);
-
-        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
-        camera.position.set(15, 12, 20);
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.2;
-        document.body.appendChild(renderer.domElement);
-
-        // ----- УПРАВЛЕНИЕ КАМЕРОЙ (OrbitControls) -----
-        const orbitControls = new OrbitControls(camera, renderer.domElement);
-        orbitControls.enableDamping = true;
-        orbitControls.dampingFactor = 0.08;
-        orbitControls.maxPolarAngle = Math.PI / 2.1;
-        orbitControls.minDistance = 2;
-        orbitControls.maxDistance = 80;
-        orbitControls.target.set(0, 0, 0);
-        orbitControls.update();
-
-        // ----- TRANSFORM CONTROLS -----
-        const transformControls = new TransformControls(camera, renderer.domElement);
-        transformControls.setSize(0.6);
-        scene.add(transformControls);
-
-        transformControls.addEventListener('dragging-changed', (event) => {
-            orbitControls.enabled = !event.value;
-        });
-
-        transformControls.addEventListener('objectChange', () => {
-            if (selectedObject) {
-                const mesh = selectedObject.mesh;
-                if (mesh) {
-                    selectedObject.data.position.copy(mesh.position);
-                    selectedObject.data.rotation.copy(mesh.rotation);
-                    selectedObject.data.scale.copy(mesh.scale);
-                }
-            }
-        });
-
-        function setTransformMode(mode) {
-            transformControls.setMode(mode);
-            document.querySelectorAll('.transform-btn').forEach(b => b.classList.remove('active'));
-            if (mode === 'translate') document.getElementById('btn-translate').classList.add('active');
-            else if (mode === 'rotate') document.getElementById('btn-rotate').classList.add('active');
-            else if (mode === 'scale') document.getElementById('btn-scale').classList.add('active');
-        }
-        document.getElementById('btn-translate').addEventListener('click', () => setTransformMode('translate'));
-        document.getElementById('btn-rotate').addEventListener('click', () => setTransformMode('rotate'));
-        document.getElementById('btn-scale').addEventListener('click', () => setTransformMode('scale'));
-
-        // ----- ОСВЕЩЕНИЕ -----
-        const ambient = new THREE.AmbientLight(0x404060, 0.5);
-        scene.add(ambient);
-
-        const sun = new THREE.DirectionalLight(0xffeedd, 1.8);
-        sun.position.set(30, 40, 20);
-        sun.castShadow = true;
-        sun.shadow.mapSize.width = 2048;
-        sun.shadow.mapSize.height = 2048;
-        sun.shadow.camera.near = 0.5;
-        sun.shadow.camera.far = 100;
-        sun.shadow.camera.left = -50;
-        sun.shadow.camera.right = 50;
-        sun.shadow.camera.top = 50;
-        sun.shadow.camera.bottom = -50;
-        scene.add(sun);
-
-        const fill = new THREE.DirectionalLight(0x8888ff, 0.3);
-        fill.position.set(-20, 10, -20);
-        scene.add(fill);
-
-        // ----- ЗАГРУЗКА ТЕКСТУР (с fallback-цветами) -----
-        async function loadTextures() {
-            const loadPromises = textureNames.map(async (name) => {
-                const ext = textureExtensions[name] || 'jpg';
-                const path = `textures/${name}.${ext}`;
-                try {
-                    const response = await fetch(path);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const blob = await response.blob();
-                    const reader = new FileReader();
-                    return new Promise((resolve) => {
-                        reader.onload = () => {
-                            textureData[name] = reader.result;
-                            resolve();
-                        };
-                        reader.readAsDataURL(blob);
-                    });
-                } catch (e) {
-                    console.warn(`Не удалось загрузить ${path}, используется цвет`);
-                    textureData[name] = null;
-                }
+// ----- ЗАГРУЗКА ТЕКСТУР -----
+async function loadTextures() {
+    for (const name of textureNames) {
+        const ext = textureExtensions[name] || 'jpg';
+        try {
+            const resp = await fetch(`textures/${name}.${ext}`);
+            if (!resp.ok) throw new Error();
+            const blob = await resp.blob();
+            const reader = new FileReader();
+            await new Promise((resolve) => {
+                reader.onload = () => { textureData[name] = reader.result; resolve(); };
+                reader.readAsDataURL(blob);
             });
-            await Promise.all(loadPromises);
-        }
+        } catch (e) { textureData[name] = null; }
+    }
+}
+function createTextureFromBase64(b64) { if (!b64) return null; const img = new Image(); img.src = b64; const tex = new THREE.Texture(img); tex.needsUpdate = true; return tex; }
 
-        function createTextureFromBase64(base64) {
-            if (!base64) return null;
-            const img = new Image();
-            img.src = base64;
-            const tex = new THREE.Texture(img);
-            tex.needsUpdate = true;
-            return tex;
-        }
+// ----- ЛАНДШАФТ -----
+const geometry = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE, SEGMENTS, SEGMENTS);
+geometry.rotateX(-Math.PI/2);
+const posAttr = geometry.attributes.position;
+const vertexCount = posAttr.count;
+const origX = new Float32Array(vertexCount);
+const origZ = new Float32Array(vertexCount);
+for (let i=0; i<vertexCount; i++) { origX[i] = posAttr.getX(i); origZ[i] = posAttr.getZ(i); }
+const heights = new Float32Array(vertexCount); heights.fill(0);
+function updateTerrain() {
+    for (let i=0; i<vertexCount; i++) posAttr.setY(i, heights[i]);
+    posAttr.needsUpdate = true;
+    geometry.computeVertexNormals();
+}
+let terrainMat, terrain;
+function initTerrain() {
+    terrainMat = new THREE.MeshStandardMaterial({ color:0x6da56a, roughness:0.8, metalness:0, side:THREE.DoubleSide });
+    terrain = new THREE.Mesh(geometry, terrainMat);
+    terrain.receiveShadow = true; terrain.castShadow = true; terrain.position.y = 0;
+    scene.add(terrain);
+    if (textureData.trawa) {
+        const tex = createTextureFromBase64(textureData.trawa);
+        terrainMat.map = tex; terrainMat.color.setHex(0xffffff); terrainMat.needsUpdate = true;
+    }
+}
 
-        // ----- ЛАНДШАФТ (создаётся сразу, без текстур) -----
-        const geometry = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE, SEGMENTS, SEGMENTS);
-        geometry.rotateX(-Math.PI/2);
-        const posAttr = geometry.attributes.position;
-        const vertexCount = posAttr.count;
-        const origX = new Float32Array(vertexCount);
-        const origZ = new Float32Array(vertexCount);
-        for (let i=0; i<vertexCount; i++) {
-            origX[i] = posAttr.getX(i);
-            origZ[i] = posAttr.getZ(i);
-        }
-        const heights = new Float32Array(vertexCount);
-        heights.fill(0);
+// ----- СЕТКА -----
+const gridHelper = new THREE.GridHelper(MAP_SIZE, 20, 0x88ff88, 0x44aa44);
+gridHelper.position.y = 0.02;
+scene.add(gridHelper);
+const gridFine = new THREE.GridHelper(MAP_SIZE, 100, 0x88ff88, 0x44aa44);
+gridFine.position.y = 0.01;
+gridFine.material.transparent = true;
+gridFine.material.opacity = 0.3;
+scene.add(gridFine);
 
-        function updateTerrain() {
-            for (let i=0; i<vertexCount; i++) {
-                posAttr.setY(i, heights[i]);
+// ----- ФУНКЦИИ РЕЛЬЕФА -----
+function modifyTerrain(x,z,radius,strength,mode) {
+    const r2 = radius*radius;
+    for (let i=0; i<vertexCount; i++) {
+        const dx = origX[i]-x, dz = origZ[i]-z, d = dx*dx+dz*dz;
+        if (d < r2) {
+            const influence = 1 - Math.sqrt(d)/radius;
+            const delta = influence * strength;
+            if (mode === 'raise') heights[i] += delta;
+            else if (mode === 'lower') heights[i] -= delta;
+            heights[i] = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, heights[i]));
+        }
+    }
+    updateTerrain();
+}
+
+// ----- СОЗДАНИЕ ОБЪЕКТОВ (упрощённо, но рабочее) -----
+function createWall(x1,z1,x2,z2,height=WALL_HEIGHT_DEFAULT,width=WALL_WIDTH_DEFAULT,type='wood') {
+    const dx = x2-x1, dz = z2-z1, len = Math.sqrt(dx*dx+dz*dz);
+    if (len < 0.3) return null;
+    const angle = Math.atan2(dx,dz), mx = (x1+x2)/2, mz = (z1+z2)/2;
+    let tex = null;
+    if (type === 'wood' && textureData.dpol) tex = createTextureFromBase64(textureData.dpol);
+    else if (type === 'stone' && textureData.stena) tex = createTextureFromBase64(textureData.stena);
+    else if (type === 'stone2' && textureData.stena2) tex = createTextureFromBase64(textureData.stena2);
+    if (!tex) tex = createTextureFromBase64(FALLBACK_TEXTURE_BASE64);
+    const mat = new THREE.MeshStandardMaterial({ map:tex, color:0xffffff, roughness:0.7 });
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(width,height,len), mat);
+    wall.position.set(mx, height/2, mz); wall.rotation.y = angle;
+    wall.castShadow = true; wall.receiveShadow = true;
+    wall.userData.isObject = true; wall.userData.id = objectIdCounter++;
+    wall.userData.type = 'wall'; wall.userData.wallType = type;
+    wall.userData.width = width; wall.userData.height = height; wall.userData.length = len;
+    scene.add(wall);
+    const obj = { mesh:wall, id:wall.userData.id, type:'wall', data: {
+        width, height, len,
+        position: wall.position.clone(), rotation: wall.rotation.clone(), scale: wall.scale.clone(),
+        color: 0xffffff, texture: type, collision: true, wallType: type
+    }};
+    sceneObjects.push(obj);
+    updateObjectList();
+    return obj;
+}
+
+function createObject(type, pos, color=0xffaa00, size=0.6) {
+    // Для простоты реализуем только базовые примитивы (без деревьев, столов и т.д. — их можно добавить позже)
+    const mat = new THREE.MeshStandardMaterial({ color, roughness:0.5, metalness:0.1 });
+    let mesh;
+    if (type === 'cube') mesh = new THREE.Mesh(new THREE.BoxGeometry(size,size,size), mat);
+    else if (type === 'sphere') mesh = new THREE.Mesh(new THREE.SphereGeometry(size/2,16,16), mat);
+    else if (type === 'cylinder') mesh = new THREE.Mesh(new THREE.CylinderGeometry(size/2,size/2,size,12), mat);
+    else mesh = new THREE.Mesh(new THREE.BoxGeometry(size,size,size), mat);
+    mesh.position.copy(pos);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.userData.isObject = true; mesh.userData.id = objectIdCounter++;
+    mesh.userData.type = type;
+    scene.add(mesh);
+    const obj = { mesh, id:mesh.userData.id, type, data: {
+        position: pos.clone(), rotation: new THREE.Euler(0,0,0), scale: new THREE.Vector3(1,1,1),
+        color, texture: null, collision: true, size
+    }};
+    sceneObjects.push(obj);
+    updateObjectList();
+    return obj;
+}
+
+// ----- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ -----
+function removeObject(obj) {
+    scene.remove(obj.mesh);
+    const idx = sceneObjects.indexOf(obj);
+    if (idx !== -1) sceneObjects.splice(idx, 1);
+    if (selectedObject === obj) { selectedObject = null; transformControls.detach(); }
+    const si = selectedObjects.indexOf(obj);
+    if (si !== -1) selectedObjects.splice(si, 1);
+    updateObjectList();
+    hideProperties();
+}
+function clearAll() {
+    sceneObjects.forEach(o => scene.remove(o.mesh));
+    sceneObjects.length = 0;
+    selectedObject = null; selectedObjects = [];
+    transformControls.detach();
+    updateObjectList();
+    hideProperties();
+    for (let i=0; i<vertexCount; i++) heights[i] = 0;
+    updateTerrain();
+    removeGhost();
+}
+function removeGhost() {
+    if (ghostObject) { scene.remove(ghostObject); ghostObject = null; }
+    isGhostActive = false;
+    ghostStartPoint = null;
+    ghostType = null;
+    ghostData = {};
+    orbitControls.enableZoom = true;
+    setHint('Выберите инструмент справа');
+}
+function selectObject(obj) {
+    if (selectedObject === obj) return;
+    if (selectedObject) transformControls.detach();
+    selectedObject = obj;
+    if (obj) {
+        transformControls.attach(obj.mesh);
+        setStatus(`Выделен ${obj.type} #${obj.id}`);
+    } else {
+        setStatus('Выделение снято');
+    }
+    updateObjectList();
+}
+function showProperties(obj) { /* панель свойств пока не реализована */ }
+function hideProperties() {}
+function duplicateObject(obj) {
+    const pos = obj.data.position.clone(); pos.x += 1; pos.z += 1;
+    let n;
+    if (obj.type === 'wall') {
+        const d = obj.data; const halfW = d.len/2;
+        const ang = obj.mesh.rotation.y;
+        const dx = Math.sin(ang)*halfW, dz = Math.cos(ang)*halfW;
+        const cx = obj.mesh.position.x, cz = obj.mesh.position.z;
+        n = createWall(cx-dx+1, cz-dz+1, cx+dx+1, cz+dz+1, d.height, d.width, d.wallType);
+    } else {
+        n = createObject(obj.type, pos, obj.data.color, 0.6);
+    }
+    if (n) { selectObject(n); setStatus('Объект дублирован'); }
+}
+function setStatus(msg) { document.getElementById('status').textContent = msg; }
+function setHint(msg) { document.getElementById('hint').textContent = msg; }
+function updateObjectList() { setStatus(`Объектов: ${sceneObjects.length}`); }
+function snapPoint(x,z) {
+    if (!snapEnabled) return {x,y:z};
+    const sx = Math.round(x / SNAP_GRID) * SNAP_GRID;
+    const sz = Math.round(z / SNAP_GRID) * SNAP_GRID;
+    return {x:sx, y:sz};
+}
+
+// ----- ОБРАБОТЧИКИ ДВОЙНОГО КЛИКА -----
+renderer.domElement.addEventListener('dblclick', (e) => {
+    if (currentMode === 'walls') {
+        if (!isGhostActive) {
+            const hit = getTerrainIntersection(e);
+            if (hit) {
+                const p = hit.point; const s = snapPoint(p.x, p.z);
+                ghostStartPoint = new THREE.Vector3(s.x, 0, s.y);
+                const tex = createTextureFromBase64(FALLBACK_TEXTURE_BASE64);
+                const mat = new THREE.MeshStandardMaterial({ map:tex, color:0x4a9eff, transparent:true, opacity:0.4, depthWrite:false });
+                const w = WALL_WIDTH_DEFAULT, h = WALL_HEIGHT_DEFAULT;
+                const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, 1), mat);
+                mesh.position.set(ghostStartPoint.x, h/2, ghostStartPoint.z);
+                mesh.userData.isGhost = true; mesh.visible = false;
+                scene.add(mesh); ghostObject = mesh; isGhostActive = true; ghostType = 'wall';
+                ghostData = { width:w, height:h, type:currentWallType };
+                ghostSmoothTarget = mesh.position.clone();
+                setStatus('Выберите конечную точку стены (двойной клик)');
+                setHint('Двойной клик — фиксация, колёсико — ширина');
+                orbitControls.enableZoom = false;
             }
-            posAttr.needsUpdate = true;
-            geometry.computeVertexNormals();
-        }
-
-        let terrainMat;
-        let terrain;
-
-        function initTerrain() {
-            // Используем цвет, пока текстура не загрузится
-            terrainMat = new THREE.MeshStandardMaterial({
-                color: 0x6da56a,
-                roughness: 0.8,
-                metalness: 0.0,
-                side: THREE.DoubleSide,
-            });
-            terrain = new THREE.Mesh(geometry, terrainMat);
-            terrain.receiveShadow = true;
-            terrain.castShadow = true;
-            terrain.position.y = 0;
-            scene.add(terrain);
-
-            // После загрузки текстур обновим
-            if (textureData['trawa']) {
-                const tex = createTextureFromBase64(textureData['trawa']);
-                terrainMat.map = tex;
-                terrainMat.color.setHex(0xffffff);
-                terrainMat.needsUpdate = true;
+        } else {
+            const hit = getTerrainIntersection(e);
+            if (hit && ghostStartPoint) {
+                const p = hit.point; const s = snapPoint(p.x, p.z);
+                const w = ghostData.width || WALL_WIDTH_DEFAULT;
+                const h = ghostData.height || WALL_HEIGHT_DEFAULT;
+                const wall = createWall(ghostStartPoint.x, ghostStartPoint.z, s.x, s.y, h, w, ghostData.type);
+                if (wall) setStatus('Стена создана');
+                removeGhost();
+                orbitControls.enableZoom = true;
             }
         }
-
-        // ----- ФУНКЦИИ РАБОТЫ С РЕЛЬЕФОМ -----
-        function getClosestVertexIndex(x, z) {
-            let minDist = Infinity;
-            let idx = -1;
-            for (let i=0; i<vertexCount; i++) {
-                const dx = origX[i] - x;
-                const dz = origZ[i] - z;
-                const dist = dx*dx + dz*dz;
-                if (dist < minDist) {
-                    minDist = dist;
-                    idx = i;
-                }
+    } else if (currentMode === 'objects') {
+        if (!isGhostActive) {
+            const hit = getTerrainIntersection(e);
+            if (hit) {
+                const p = hit.point; const s = snapPoint(p.x, p.z);
+                const pos = new THREE.Vector3(s.x, 0, s.y);
+                const mat = new THREE.MeshStandardMaterial({ color:0x4a9eff, transparent:true, opacity:0.4 });
+                let ghost;
+                if (currentObjectType === 'cube') ghost = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), mat);
+                else if (currentObjectType === 'sphere') ghost = new THREE.Mesh(new THREE.SphereGeometry(0.3,16,16), mat);
+                else if (currentObjectType === 'cylinder') ghost = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.6,12), mat);
+                else ghost = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), mat);
+                ghost.position.copy(pos); ghost.userData.isGhost = true;
+                scene.add(ghost); ghostObject = ghost; isGhostActive = true; ghostType = 'object';
+                ghostData = { type:currentObjectType };
+                ghostSmoothTarget = pos.clone();
+                setStatus('Выберите место для предмета (двойной клик)');
+                setHint('Двойной клик — фиксация');
+                orbitControls.enableZoom = false;
             }
-            return idx;
-        }
-
-        function modifyTerrain(x, z, radius, strength, mode) {
-            const radiusSq = radius*radius;
-            for (let i=0; i<vertexCount; i++) {
-                const dx = origX[i] - x;
-                const dz = origZ[i] - z;
-                const distSq = dx*dx + dz*dz;
-                if (distSq < radiusSq) {
-                    const influence = 1 - Math.sqrt(distSq)/radius;
-                    const delta = influence * strength;
-                    if (mode === 'raise') heights[i] += delta;
-                    else if (mode === 'lower') heights[i] -= delta;
-                    heights[i] = Math.max(-MAX_HEIGHT, Math.min(MAX_HEIGHT, heights[i]));
-                }
+        } else {
+            const hit = getTerrainIntersection(e);
+            if (hit) {
+                const p = hit.point; const s = snapPoint(p.x, p.z);
+                const pos = new THREE.Vector3(s.x, 0, s.y);
+                const obj = createObject(ghostData.type, pos);
+                if (obj) { selectObject(obj); setStatus(`Предмет "${ghostData.type}" добавлен`); }
+                removeGhost();
+                orbitControls.enableZoom = true;
             }
-            updateTerrain();
         }
+    }
+});
 
-        // ----- СОЗДАНИЕ ОБЪЕКТОВ (реальных) -----
-        function createWall(x1, z1, x2, z2, height = WALL_HEIGHT_DEFAULT, width = WALL_WIDTH_DEFAULT) {
-            const dx = x2 - x1;
-            const dz = z2 - z1;
-            const length = Math.sqrt(dx*dx + dz*dz);
-            if (length < 0.3) return null;
-            const angle = Math.atan2(dx, dz);
-            const midX = (x1 + x2) / 2;
-            const midZ = (z1 + z2) / 2;
-
-            let tex = textureData['stena'] ? createTextureFromBase64(textureData['stena']) : null;
-            if (!tex) tex = textureData['dpol'] ? createTextureFromBase64(textureData['dpol']) : null;
-            const wallMat = new THREE.MeshStandardMaterial({
-                map: tex || undefined,
-                color: tex ? 0xffffff : 0xbc8f4f,
-                roughness: 0.7,
-                metalness: 0.0,
-            });
-            const wall = new THREE.Mesh(new THREE.BoxGeometry(width, height, length), wallMat);
-            wall.position.set(midX, height/2, midZ);
-            wall.rotation.y = angle;
-            wall.castShadow = true;
-            wall.receiveShadow = true;
-            wall.userData.isObject = true;
-            wall.userData.id = objectIdCounter++;
-            wall.userData.type = 'wall';
-            wall.userData.width = width;
-            wall.userData.height = height;
-            wall.userData.length = length;
-            scene.add(wall);
-            const objData = {
-                mesh: wall,
-                id: wall.userData.id,
-                type: 'wall',
-                data: {
-                    width, height, length,
-                    position: wall.position.clone(),
-                    rotation: wall.rotation.clone(),
-                    scale: wall.scale.clone(),
-                    color: wallMat.color.getHex(),
-                    texture: tex ? 'stena' : null,
-                    collision: true,
-                }
-            };
-            sceneObjects.push(objData);
-            updateObjectList();
-            return objData;
-        }
-
-        function createObject(type, position, color = 0xffaa00, size = 0.6) {
-            // Аналогично предыдущей версии, но с добавлением текстуры
-            let mesh;
-            if (type === 'tree') {
-                const group = new THREE.Group();
-                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.8, 6), trunkMat);
-                trunk.position.y = 0.4;
-                trunk.castShadow = true;
-                group.add(trunk);
-                const leafMat = new THREE.MeshStandardMaterial({ color: 0x2E7D32 });
-                const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.8, 6), leafMat);
-                leaf.position.y = 0.9;
-                leaf.castShadow = true;
-                group.add(leaf);
-                group.position.copy(position);
-                group.userData.isObject = true;
-                group.userData.id = objectIdCounter++;
-                group.userData.type = 'tree';
-                scene.add(group);
-                const objData = {
-                    mesh: group,
-                    id: group.userData.id,
-                    type: 'tree',
-                    data: {
-                        position: position.clone(),
-                        rotation: new THREE.Euler(0,0,0),
-                        scale: new THREE.Vector3(1,1,1),
-                        color: 0x2E7D32,
-                        texture: null,
-                        collision: true,
-                    }
-                };
-                sceneObjects.push(objData);
-                updateObjectList();
-                return objData;
-            } else if (type === 'table') {
-                const group = new THREE.Group();
-                const topMat = new THREE.MeshStandardMaterial({ color: 0xDEB887 });
-                const top = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.5), topMat);
-                top.position.y = 0.6;
-                top.castShadow = true;
-                group.add(top);
-                const legMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
-                for (let x of [-0.35, 0.35]) {
-                    for (let z of [-0.2, 0.2]) {
-                        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.55, 6), legMat);
-                        leg.position.set(x, 0.275, z);
-                        group.add(leg);
-                    }
-                }
-                group.position.copy(position);
-                group.userData.isObject = true;
-                group.userData.id = objectIdCounter++;
-                group.userData.type = 'table';
-                scene.add(group);
-                const objData = {
-                    mesh: group,
-                    id: group.userData.id,
-                    type: 'table',
-                    data: {
-                        position: position.clone(),
-                        rotation: new THREE.Euler(0,0,0),
-                        scale: new THREE.Vector3(1,1,1),
-                        color: 0xDEB887,
-                        texture: null,
-                        collision: true,
-                    }
-                };
-                sceneObjects.push(objData);
-                updateObjectList();
-                return objData;
-            } else if (type === 'chair') {
-                const group = new THREE.Group();
-                const seatMat = new THREE.MeshStandardMaterial({ color: 0xDEB887 });
-                const seat = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, 0.3), seatMat);
-                seat.position.y = 0.35;
-                seat.castShadow = true;
-                group.add(seat);
-                const legMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
-                for (let x of [-0.12, 0.12]) {
-                    for (let z of [-0.12, 0.12]) {
-                        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 6), legMat);
-                        leg.position.set(x, 0.15, z);
-                        group.add(leg);
-                    }
-                }
-                const backMat = new THREE.MeshStandardMaterial({ color: 0xDEB887 });
-                const back = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.02), backMat);
-                back.position.set(0, 0.55, -0.15);
-                group.add(back);
-                group.position.copy(position);
-                group.userData.isObject = true;
-                group.userData.id = objectIdCounter++;
-                group.userData.type = 'chair';
-                scene.add(group);
-                const objData = {
-                    mesh: group,
-                    id: group.userData.id,
-                    type: 'chair',
-                    data: {
-                        position: position.clone(),
-                        rotation: new THREE.Euler(0,0,0),
-                        scale: new THREE.Vector3(1,1,1),
-                        color: 0xDEB887,
-                        texture: null,
-                        collision: true,
-                    }
-                };
-                sceneObjects.push(objData);
-                updateObjectList();
-                return objData;
-            } else if (type === 'lamp') {
-                const group = new THREE.Group();
-                const poleMat = new THREE.MeshStandardMaterial({ color: 0xCCCCCC, metalness: 0.8, roughness: 0.2 });
-                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 1.0, 8), poleMat);
-                pole.position.y = 0.5;
-                pole.castShadow = true;
-                group.add(pole);
-                const shadeMat = new THREE.MeshStandardMaterial({ color: 0xFFE4B5 });
-                const shade = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.25, 8), shadeMat);
-                shade.position.y = 1.1;
-                shade.castShadow = true;
-                group.add(shade);
-                const bulbMat = new THREE.MeshStandardMaterial({ color: 0xFFFF88, emissive: 0xFFFF88, emissiveIntensity: 0.3 });
-                const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), bulbMat);
-                bulb.position.y = 0.95;
-                group.add(bulb);
-                group.position.copy(position);
-                group.userData.isObject = true;
-                group.userData.id = objectIdCounter++;
-                group.userData.type = 'lamp';
-                scene.add(group);
-                const objData = {
-                    mesh: group,
-                    id: group.userData.id,
-                    type: 'lamp',
-                    data: {
-                        position: position.clone(),
-                        rotation: new THREE.Euler(0,0,0),
-                        scale: new THREE.Vector3(1,1,1),
-                        color: 0xFFE4B5,
-                        texture: null,
-                        collision: true,
-                    }
-                };
-                sceneObjects.push(objData);
-                updateObjectList();
-                return objData;
+// ----- ПЛАВНОЕ ОБНОВЛЕНИЕ ПРИЗМЫ -----
+function updateGhostSmooth() {
+    if (!isGhostActive || !ghostObject) return;
+    if (ghostSmoothTarget) {
+        const speed = 0.25;
+        const pos = ghostObject.position;
+        pos.x += (ghostSmoothTarget.x - pos.x) * speed;
+        pos.y += (ghostSmoothTarget.y - pos.y) * speed;
+        pos.z += (ghostSmoothTarget.z - pos.z) * speed;
+        if (Math.abs(pos.x - ghostSmoothTarget.x) < 0.001) pos.x = ghostSmoothTarget.x;
+        if (Math.abs(pos.y - ghostSmoothTarget.y) < 0.001) pos.y = ghostSmoothTarget.y;
+        if (Math.abs(pos.z - ghostSmoothTarget.z) < 0.001) pos.z = ghostSmoothTarget.z;
+        if (ghostType === 'wall' && ghostStartPoint) {
+            const dx = pos.x - ghostStartPoint.x, dz = pos.z - ghostStartPoint.z;
+            const len = Math.sqrt(dx*dx + dz*dz);
+            if (len > 0.1) {
+                const ang = Math.atan2(dx, dz);
+                ghostObject.rotation.y = ang;
+                ghostObject.scale.z = len;
+                ghostObject.visible = true;
             } else {
-                // Примитивы
-                const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1 });
-                if (type === 'cube') {
-                    mesh = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), mat);
-                } else if (type === 'sphere') {
-                    mesh = new THREE.Mesh(new THREE.SphereGeometry(size/2, 16, 16), mat);
-                } else if (type === 'cylinder') {
-                    mesh = new THREE.Mesh(new THREE.CylinderGeometry(size/2, size/2, size, 12), mat);
-                } else {
-                    mesh = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), mat);
-                }
-                mesh.position.copy(position);
-                mesh.castShadow = true;
-                mesh.receiveShadow = true;
-                mesh.userData.isObject = true;
-                mesh.userData.id = objectIdCounter++;
-                mesh.userData.type = type;
-                scene.add(mesh);
-                const objData = {
-                    mesh: mesh,
-                    id: mesh.userData.id,
-                    type: type,
-                    data: {
-                        position: position.clone(),
-                        rotation: new THREE.Euler(0,0,0),
-                        scale: new THREE.Vector3(1,1,1),
-                        color: color,
-                        texture: null,
-                        collision: true,
-                        size: size,
-                    }
-                };
-                sceneObjects.push(objData);
-                updateObjectList();
-                return objData;
+                ghostObject.visible = false;
             }
         }
+    }
+    requestAnimationFrame(updateGhostSmooth);
+}
+updateGhostSmooth();
 
-        function removeObject(objData) {
-            scene.remove(objData.mesh);
-            const idx = sceneObjects.indexOf(objData);
-            if (idx !== -1) sceneObjects.splice(idx, 1);
-            if (selectedObject === objData) {
-                selectedObject = null;
-                transformControls.detach();
-            }
-            const selIdx = selectedObjects.indexOf(objData);
-            if (selIdx !== -1) selectedObjects.splice(selIdx, 1);
-            updateObjectList();
-            hideProperties();
+renderer.domElement.addEventListener('mousemove', (e) => {
+    if (!isGhostActive || !ghostObject) return;
+    const hit = getTerrainIntersection(e);
+    if (!hit) return;
+    const p = hit.point; const s = snapPoint(p.x, p.z);
+    const target = new THREE.Vector3(s.x, 0, s.y);
+    if (ghostType === 'wall' && ghostStartPoint) {
+        const mx = (ghostStartPoint.x + s.x) / 2;
+        const mz = (ghostStartPoint.z + s.y) / 2;
+        target.set(mx, ghostData.height/2, mz);
+        ghostSmoothTarget = target;
+    } else if (ghostType === 'object') {
+        ghostSmoothTarget = target;
+    }
+});
+
+renderer.domElement.addEventListener('wheel', (e) => {
+    if (isGhostActive && ghostType === 'wall') {
+        const delta = Math.sign(e.deltaY) * -1;
+        let newW = (ghostData.width || WALL_WIDTH_DEFAULT) + delta * 0.05;
+        newW = Math.max(0.1, Math.min(1.0, newW));
+        ghostData.width = newW;
+        if (ghostObject) {
+            const oldGeo = ghostObject.geometry;
+            const newGeo = new THREE.BoxGeometry(newW, ghostData.height || WALL_HEIGHT_DEFAULT, 1);
+            ghostObject.geometry = newGeo;
+            oldGeo.dispose();
         }
+        setStatus(`Ширина стены: ${newW.toFixed(2)} м`);
+        e.preventDefault();
+    }
+});
 
-        function clearAll() {
-            sceneObjects.forEach(obj => scene.remove(obj.mesh));
-            sceneObjects.length = 0;
-            selectedObject = null;
-            selectedObjects = [];
-            transformControls.detach();
-            updateObjectList();
-            hideProperties();
-            for (let i=0; i<vertexCount; i++) heights[i] = 0;
-            updateTerrain();
-            // Удалить призму, если есть
-            removeGhost();
+// ----- ПОЛУЧЕНИЕ ПЕРЕСЕЧЕНИЙ -----
+function getTerrainIntersection(e) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObject(terrain);
+    if (hits.length > 0) return hits[0];
+    return null;
+}
+function getObjectIntersection(e) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    const meshes = sceneObjects.map(o => o.mesh);
+    const hits = raycaster.intersectObjects(meshes, true);
+    if (hits.length > 0) {
+        let obj = hits[0].object;
+        while (obj && !obj.userData.isObject) obj = obj.parent;
+        if (obj && obj.userData.isObject) {
+            return sceneObjects.find(o => o.id === obj.userData.id);
         }
+    }
+    return null;
+}
 
-        // ----- ПРИЗМА (GHOST) -----
-        function createGhostWall(x, z, width = WALL_WIDTH_DEFAULT, height = WALL_HEIGHT_DEFAULT) {
-            // Создаём полупрозрачную стену от точки (x,z) до курсора
-            // Но у нас нет курсора, поэтому просто создадим заглушку, обновляемую в mousemove
-            const mat = new THREE.MeshStandardMaterial({
-                color: 0x4a9eff,
-                transparent: true,
-                opacity: 0.4,
-                roughness: 0.5,
-                metalness: 0.0,
-                depthWrite: false,
-            });
-            const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, 1), mat);
-            mesh.position.set(x, height/2, z);
-            mesh.castShadow = false;
-            mesh.receiveShadow = false;
-            mesh.userData.isGhost = true;
-            scene.add(mesh);
-            return mesh;
+// ----- КЛИКИ ПО СЦЕНЕ -----
+renderer.domElement.addEventListener('click', (e) => {
+    if (currentMode === 'terrain') {
+        const hit = getTerrainIntersection(e);
+        if (hit) {
+            const p = hit.point;
+            const radius = parseFloat(document.getElementById('brush-radius').value);
+            const strength = parseFloat(document.getElementById('brush-strength').value);
+            modifyTerrain(p.x, p.z, radius, strength, reliefAction);
         }
-
-        function createGhostObject(type, position, color = 0x4a9eff) {
-            // Создаём полупрозрачную копию объекта
-            let mesh;
-            const mat = new THREE.MeshStandardMaterial({
-                color: color,
-                transparent: true,
-                opacity: 0.4,
-                roughness: 0.5,
-                metalness: 0.0,
-                depthWrite: false,
-            });
-            // Для сложных объектов (дерево, стол) используем упрощённую геометрию (бокс)
-            // или клонируем группу с прозрачностью
-            if (type === 'tree') {
-                const group = new THREE.Group();
-                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B, transparent: true, opacity: 0.4 });
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.8, 6), trunkMat);
-                trunk.position.y = 0.4;
-                group.add(trunk);
-                const leafMat = new THREE.MeshStandardMaterial({ color: 0x2E7D32, transparent: true, opacity: 0.4 });
-                const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.8, 6), leafMat);
-                leaf.position.y = 0.9;
-                group.add(leaf);
-                group.position.copy(position);
-                group.userData.isGhost = true;
-                scene.add(group);
-                return group;
-            } else if (type === 'table') {
-                const group = new THREE.Group();
-                const topMat = new THREE.MeshStandardMaterial({ color: 0xDEB887, transparent: true, opacity: 0.4 });
-                const top = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.5), topMat);
-                top.position.y = 0.6;
-                group.add(top);
-                const legMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B, transparent: true, opacity: 0.4 });
-                for (let x of [-0.35, 0.35]) {
-                    for (let z of [-0.2, 0.2]) {
-                        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.55, 6), legMat);
-                        leg.position.set(x, 0.275, z);
-                        group.add(leg);
-                    }
-                }
-                group.position.copy(position);
-                group.userData.isGhost = true;
-                scene.add(group);
-                return group;
-            } else if (type === 'chair') {
-                const group = new THREE.Group();
-                const seatMat = new THREE.MeshStandardMaterial({ color: 0xDEB887, transparent: true, opacity: 0.4 });
-                const seat = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, 0.3), seatMat);
-                seat.position.y = 0.35;
-                group.add(seat);
-                const legMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B, transparent: true, opacity: 0.4 });
-                for (let x of [-0.12, 0.12]) {
-                    for (let z of [-0.12, 0.12]) {
-                        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 6), legMat);
-                        leg.position.set(x, 0.15, z);
-                        group.add(leg);
-                    }
-                }
-                const backMat = new THREE.MeshStandardMaterial({ color: 0xDEB887, transparent: true, opacity: 0.4 });
-                const back = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.02), backMat);
-                back.position.set(0, 0.55, -0.15);
-                group.add(back);
-                group.position.copy(position);
-                group.userData.isGhost = true;
-                scene.add(group);
-                return group;
-            } else if (type === 'lamp') {
-                const group = new THREE.Group();
-                const poleMat = new THREE.MeshStandardMaterial({ color: 0xCCCCCC, transparent: true, opacity: 0.4, metalness: 0.8, roughness: 0.2 });
-                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 1.0, 8), poleMat);
-                pole.position.y = 0.5;
-                group.add(pole);
-                const shadeMat = new THREE.MeshStandardMaterial({ color: 0xFFE4B5, transparent: true, opacity: 0.4 });
-                const shade = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.25, 8), shadeMat);
-                shade.position.y = 1.1;
-                group.add(shade);
-                const bulbMat = new THREE.MeshStandardMaterial({ color: 0xFFFF88, transparent: true, opacity: 0.4, emissive: 0xFFFF88, emissiveIntensity: 0.3 });
-                const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), bulbMat);
-                bulb.position.y = 0.95;
-                group.add(bulb);
-                group.position.copy(position);
-                group.userData.isGhost = true;
-                scene.add(group);
-                return group;
-            } else {
-                // Примитивы
-                if (type === 'cube') {
-                    mesh = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), mat);
-                } else if (type === 'sphere') {
-                    mesh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), mat);
-                } else if (type === 'cylinder') {
-                    mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.6, 12), mat);
-                } else {
-                    mesh = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), mat);
-                }
-                mesh.position.copy(position);
-                mesh.userData.isGhost = true;
-                scene.add(mesh);
-                return mesh;
-            }
-        }
-
-        function updateGhostWall(ghostMesh, startX, startZ, endX, endZ, width, height) {
-            const dx = endX - startX;
-            const dz = endZ - startZ;
-            const length = Math.sqrt(dx*dx + dz*dz);
-            if (length < 0.1) {
-                ghostMesh.visible = false;
-                return;
-            }
-            ghostMesh.visible = true;
-            const angle = Math.atan2(dx, dz);
-            const midX = (startX + endX) / 2;
-            const midZ = (startZ + endZ) / 2;
-            ghostMesh.position.set(midX, height/2, midZ);
-            ghostMesh.rotation.y = angle;
-            ghostMesh.scale.set(1, 1, length); // масштабируем по длине
-            // Также меняем геометрию? Лучше пересоздавать геометрию, но для простоты оставим масштаб
-            // Но BoxGeometry с масштабом по Z даст нужный результат
-        }
-
-        function updateGhostObject(ghostMesh, position) {
-            ghostMesh.position.copy(position);
-        }
-
-        function removeGhost() {
-            if (ghostObject) {
-                scene.remove(ghostObject);
-                ghostObject = null;
-            }
-            isGhostActive = false;
-            ghostStartPoint = null;
-            ghostType = null;
-            ghostData = null;
-            document.getElementById('hint').textContent = 'Кликните по сцене для действия';
-        }
-
-        // ----- ВЫДЕЛЕНИЕ -----
-        function selectObject(objData) {
-            if (selectedObject === objData) return;
-            if (selectedObject) {
-                transformControls.detach();
-            }
-            selectedObject = objData;
-            if (objData) {
-                transformControls.attach(objData.mesh);
-                showProperties(objData);
-                setStatus(`Выделен ${objData.type} #${objData.id}`);
-            } else {
-                hideProperties();
-                setStatus('Выделение снято');
-            }
-            updateObjectList();
-        }
-
-        // ----- ПАНЕЛЬ СВОЙСТВ (упрощённо) -----
-        function showProperties(objData) {
-            const panel = document.getElementById('properties');
-            panel.style.display = 'block';
-            const content = document.getElementById('prop-content');
-            const d = objData.data;
-            const textureOptions = Object.keys(textureData).filter(k => textureData[k]).map(k => 
-                `<option value="${k}" ${d.texture === k ? 'selected' : ''}>${k}</option>`
-            ).join('');
-
-            content.innerHTML = `
-                <label>Тип: ${objData.type}</label>
-                <label>ID: ${objData.id}</label>
-                <label>Позиция X</label>
-                <input type="number" step="0.1" value="${d.position.x}" data-prop="posX">
-                <label>Позиция Y</label>
-                <input type="number" step="0.1" value="${d.position.y}" data-prop="posY">
-                <label>Позиция Z</label>
-                <input type="number" step="0.1" value="${d.position.z}" data-prop="posZ">
-                ${objData.type === 'wall' ? `
-                    <label>Ширина</label>
-                    <input type="number" step="0.1" value="${d.width}" data-prop="width">
-                    <label>Высота</label>
-                    <input type="number" step="0.1" value="${d.height}" data-prop="height">
-                    <label>Длина</label>
-                    <input type="number" step="0.1" value="${d.length}" data-prop="length">
-                ` : `
-                    <label>Масштаб X</label>
-                    <input type="number" step="0.1" value="${d.scale.x}" data-prop="scaleX">
-                    <label>Масштаб Y</label>
-                    <input type="number" step="0.1" value="${d.scale.y}" data-prop="scaleY">
-                    <label>Масштаб Z</label>
-                    <input type="number" step="0.1" value="${d.scale.z}" data-prop="scaleZ">
-                `}
-                <label>Цвет</label>
-                <input type="color" value="#${d.color.toString(16).padStart(6,'0')}" data-prop="color">
-                <label>Текстура</label>
-                <select data-prop="texture">
-                    <option value="">— нет —</option>
-                    ${textureOptions}
-                </select>
-                <label style="display:flex;align-items:center;gap:8px;">
-                    <input type="checkbox" ${d.collision ? 'checked' : ''} data-prop="collision">
-                    Коллизия
-                </label>
-                <button class="prop-btn" id="apply-prop">Применить</button>
-                <button class="prop-btn" style="background:#6c5ce7;margin-top:8px;" id="duplicate-prop">Дублировать</button>
-            `;
-
-            document.getElementById('apply-prop').addEventListener('click', () => {
-                applyProperties(objData);
-            });
-            document.getElementById('duplicate-prop').addEventListener('click', () => {
-                duplicateObject(objData);
-            });
-        }
-
-        function applyProperties(objData) {
-            const inputs = document.querySelectorAll('#prop-content [data-prop]');
-            const newData = {};
-            inputs.forEach(inp => {
-                const prop = inp.dataset.prop;
-                if (prop === 'color') newData[prop] = inp.value;
-                else if (prop === 'collision') newData[prop] = inp.checked;
-                else if (prop === 'texture') newData[prop] = inp.value || null;
-                else newData[prop] = parseFloat(inp.value);
-            });
-
-            const d = objData.data;
-            d.position.set(newData.posX || 0, newData.posY || 0, newData.posZ || 0);
-            objData.mesh.position.copy(d.position);
-
-            if (objData.type === 'wall') {
-                const w = newData.width || d.width;
-                const h = newData.height || d.height;
-                const l = newData.length || d.length;
-                const oldGeo = objData.mesh.geometry;
-                const newGeo = new THREE.BoxGeometry(w, h, l);
-                objData.mesh.geometry = newGeo;
-                objData.mesh.position.y = h/2;
-                d.width = w; d.height = h; d.length = l;
-                objData.mesh.userData.width = w; objData.mesh.userData.height = h; objData.mesh.userData.length = l;
-            } else {
-                const sx = newData.scaleX || 1;
-                const sy = newData.scaleY || 1;
-                const sz = newData.scaleZ || 1;
-                objData.mesh.scale.set(sx, sy, sz);
-                d.scale.set(sx, sy, sz);
-            }
-
-            const color = newData.color || '#ffffff';
-            const hex = parseInt(color.slice(1), 16);
-            objData.mesh.traverse(child => {
+    } else if (currentMode === 'select') {
+        const obj = getObjectIntersection(e);
+        if (obj) selectObject(obj);
+        else selectObject(null);
+    } else if (currentMode === 'delete') {
+        const obj = getObjectIntersection(e);
+        if (obj) { removeObject(obj); setStatus('Объект удалён'); }
+    } else if (currentMode === 'collision') {
+        const obj = getObjectIntersection(e);
+        if (obj) {
+            obj.data.collision = !obj.data.collision;
+            setStatus(`Коллизия для ${obj.type} #${obj.id}: ${obj.data.collision?'включена':'выключена'}`);
+            obj.mesh.traverse(child => {
                 if (child.isMesh && child.material) {
-                    child.material.color.setHex(hex);
+                    child.material.color.setHex(obj.data.collision ? 0x00ff00 : 0xff0000);
                 }
             });
-            d.color = hex;
-
-            const texName = newData.texture;
-            if (texName && textureData[texName]) {
-                const tex = createTextureFromBase64(textureData[texName]);
-                objData.mesh.traverse(child => {
+            setTimeout(() => {
+                obj.mesh.traverse(child => {
                     if (child.isMesh && child.material) {
-                        child.material.map = tex;
-                        child.material.needsUpdate = true;
+                        child.material.color.setHex(obj.data.color);
                     }
                 });
-                d.texture = texName;
-            } else {
-                objData.mesh.traverse(child => {
-                    if (child.isMesh && child.material) {
-                        child.material.map = null;
-                        child.material.needsUpdate = true;
-                    }
-                });
-                d.texture = null;
-            }
-
-            d.collision = newData.collision;
-            transformControls.detach();
-            transformControls.attach(objData.mesh);
-            showProperties(objData);
-            updateObjectList();
-            setStatus('Свойства обновлены');
+            }, 2000);
         }
+    }
+});
 
-        function duplicateObject(objData) {
-            const pos = objData.data.position.clone();
-            pos.x += 1; pos.z += 1;
-            let newObj;
-            if (objData.type === 'wall') {
-                const d = objData.data;
-                const halfW = d.length/2;
-                const angle = objData.mesh.rotation.y;
-                const dx = Math.sin(angle) * halfW;
-                const dz = Math.cos(angle) * halfW;
-                const cx = objData.mesh.position.x;
-                const cz = objData.mesh.position.z;
-                const x1 = cx - dx; const z1 = cz - dz;
-                const x2 = cx + dx; const z2 = cz + dz;
-                newObj = createWall(x1+1, z1+1, x2+1, z2+1, d.height, d.width);
-            } else {
-                newObj = createObject(objData.type, pos, objData.data.color, 0.6);
+// ----- ПАНЕЛЬ УПРАВЛЕНИЯ -----
+// Рельеф
+document.querySelectorAll('#relief-mode button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#relief-mode button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        reliefAction = btn.dataset.relief;
+    });
+});
+document.getElementById('brush-radius').addEventListener('input', (e) => {
+    document.getElementById('radius-label').textContent = parseFloat(e.target.value).toFixed(1);
+});
+document.getElementById('brush-strength').addEventListener('input', (e) => {
+    document.getElementById('strength-label').textContent = parseFloat(e.target.value).toFixed(1);
+});
+document.getElementById('relief-activate').addEventListener('click', () => {
+    setMode('terrain');
+});
+
+// Предметы
+document.querySelectorAll('#object-items button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#object-items button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentObjectType = btn.dataset.object;
+    });
+});
+document.getElementById('object-activate').addEventListener('click', () => {
+    setMode('objects');
+});
+
+// Стены
+document.querySelectorAll('#wall-items button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#wall-items button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentWallType = btn.dataset.wall;
+    });
+});
+document.getElementById('wall-activate').addEventListener('click', () => {
+    setMode('walls');
+});
+
+// Коллизия
+document.getElementById('collision-toggle').addEventListener('click', () => {
+    setMode('collision');
+    document.getElementById('collision-toggle').classList.toggle('active');
+});
+
+// Трансформация
+document.getElementById('trans-translate').addEventListener('click', () => {
+    currentTransformMode = 'translate';
+    setTransformMode('translate');
+    document.querySelectorAll('.trans-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('trans-translate').classList.add('active');
+});
+document.getElementById('trans-rotate').addEventListener('click', () => {
+    currentTransformMode = 'rotate';
+    setTransformMode('rotate');
+    document.querySelectorAll('.trans-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('trans-rotate').classList.add('active');
+});
+document.getElementById('trans-scale').addEventListener('click', () => {
+    currentTransformMode = 'scale';
+    setTransformMode('scale');
+    document.querySelectorAll('.trans-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('trans-scale').classList.add('active');
+});
+function setTransformMode(mode) { transformControls.setMode(mode); }
+
+// Действия
+document.getElementById('select-mode').addEventListener('click', () => {
+    setMode('select');
+    document.querySelectorAll('#panel .items button').forEach(b => b.classList.remove('active'));
+    document.getElementById('select-mode').classList.add('active');
+});
+document.getElementById('delete-mode').addEventListener('click', () => {
+    setMode('delete');
+    document.querySelectorAll('#panel .items button').forEach(b => b.classList.remove('active'));
+    document.getElementById('delete-mode').classList.add('active');
+});
+document.getElementById('group-btn').addEventListener('click', () => {
+    if (selectedObjects.length < 2) { setStatus('Выделите хотя бы 2 объекта (Shift+клик)'); return; }
+    const g = new THREE.Group();
+    g.userData.isObject = true; g.userData.id = objectIdCounter++; g.userData.type = 'group';
+    selectedObjects.forEach(o => {
+        const m = o.mesh; const p = m.position.clone(), r = m.rotation.clone(), s = m.scale.clone();
+        g.add(m); m.position.copy(p); m.rotation.copy(r); m.scale.copy(s);
+        const idx = sceneObjects.indexOf(o); if (idx !== -1) sceneObjects.splice(idx, 1);
+    });
+    scene.add(g);
+    const obj = { mesh:g, id:g.userData.id, type:'group', data: {
+        position: g.position.clone(), rotation: g.rotation.clone(), scale: g.scale.clone(),
+        color: 0xffffff, texture: null, collision: true, children: []
+    }};
+    sceneObjects.push(obj); selectedObjects = []; selectObject(obj); setStatus('Группа создана');
+});
+document.getElementById('ungroup-btn').addEventListener('click', () => {
+    if (!selectedObject || selectedObject.type !== 'group') { setStatus('Выделите группу'); return; }
+    const g = selectedObject.mesh; const children = [...g.children];
+    children.forEach(c => {
+        scene.add(c); const p = c.position.clone(), r = c.rotation.clone(), s = c.scale.clone();
+        const obj = { mesh:c, id:c.userData.id || objectIdCounter++, type:c.userData.type || 'unknown', data: {
+            position:p, rotation:r, scale:s,
+            color: c.material ? c.material.color.getHex() : 0xffaa00,
+            texture: null, collision: true
+        }};
+        sceneObjects.push(obj);
+    });
+    scene.remove(g); const idx = sceneObjects.indexOf(selectedObject); if (idx !== -1) sceneObjects.splice(idx, 1);
+    selectedObject = null; transformControls.detach(); updateObjectList(); hideProperties(); setStatus('Группа разгруппирована');
+});
+
+// ----- ВЕРХНЯЯ ПЛАШКА -----
+document.getElementById('save-json').addEventListener('click', () => {
+    const data = {
+        version: '5.1',
+        objects: sceneObjects.map(o => ({
+            id: o.id, type: o.type,
+            data: {
+                ...o.data,
+                position: o.data.position.toArray(),
+                rotation: o.data.rotation.toArray(),
+                scale: o.data.scale.toArray()
             }
-            if (newObj) {
-                selectObject(newObj);
-                setStatus('Объект дублирован');
-            }
-        }
+        })),
+        terrain: { heights: Array.from(heights) }
+    };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'project.json'; a.click();
+    URL.revokeObjectURL(url);
+    setStatus('Проект сохранён');
+});
+document.getElementById('export-html').addEventListener('click', () => {
+    setStatus('Экспорт в разработке');
+});
+document.getElementById('clear-all').addEventListener('click', () => {
+    if (confirm('Удалить всё?')) { clearAll(); setStatus('Всё очищено'); }
+});
 
-        function hideProperties() {
-            document.getElementById('properties').style.display = 'none';
-        }
+// ----- ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ -----
+function setMode(mode) {
+    // Если активна призма — сбрасываем
+    if (isGhostActive) removeGhost();
+    currentMode = mode;
+    const names = {
+        terrain: 'Рельеф',
+        objects: 'Предметы',
+        walls: 'Стены',
+        select: 'Выделение',
+        delete: 'Удаление',
+        collision: 'Коллизия',
+        none: 'Нет'
+    };
+    setStatus(`Режим: ${names[mode] || mode}`);
+    const hints = {
+        terrain: 'Клик по земле для изменения рельефа',
+        objects: 'Двойной клик для размещения',
+        walls: 'Двойной клик начало, двойной клик конец',
+        select: 'Клик по объекту для выделения',
+        delete: 'Клик по объекту для удаления',
+        collision: 'Клик по объекту для переключения коллизии'
+    };
+    setHint(hints[mode] || '');
+    // Включаем/выключаем зум в зависимости от режима
+    orbitControls.enableZoom = (mode !== 'walls' && mode !== 'objects');
+}
 
-        // ----- ГРУППИРОВКА -----
-        document.getElementById('btn-group').addEventListener('click', () => {
-            if (selectedObjects.length < 2) {
-                setStatus('Выделите хотя бы 2 объекта (Shift+клик)');
-                return;
-            }
-            const group = new THREE.Group();
-            group.userData.isObject = true;
-            group.userData.id = objectIdCounter++;
-            group.userData.type = 'group';
-            group.userData.children = [];
-            selectedObjects.forEach(obj => {
-                const mesh = obj.mesh;
-                const pos = mesh.position.clone();
-                const rot = mesh.rotation.clone();
-                const sca = mesh.scale.clone();
-                group.add(mesh);
-                mesh.position.copy(pos);
-                mesh.rotation.copy(rot);
-                mesh.scale.copy(sca);
-                group.userData.children.push(obj.id);
-                const idx = sceneObjects.indexOf(obj);
-                if (idx !== -1) sceneObjects.splice(idx, 1);
-            });
-            scene.add(group);
-            const objData = {
-                mesh: group,
-                id: group.userData.id,
-                type: 'group',
-                data: {
-                    position: group.position.clone(),
-                    rotation: group.rotation.clone(),
-                    scale: group.scale.clone(),
-                    color: 0xffffff,
-                    texture: null,
-                    collision: true,
-                    children: group.userData.children,
-                }
-            };
-            sceneObjects.push(objData);
-            selectedObjects = [];
-            selectObject(objData);
-            setStatus('Группа создана');
-        });
+// ----- ESCAPE -----
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        // Сбрасываем текущий режим и призму
+        if (isGhostActive) removeGhost();
+        setMode('none');
+        // Деактивируем все кнопки в панели
+        document.querySelectorAll('#panel .items button, #panel .toggle-group button').forEach(b => b.classList.remove('active'));
+        // Убираем подсветку с кнопок активации
+        document.querySelectorAll('#panel .category button').forEach(b => b.style.background = '');
+        setStatus('Действие отменено');
+        setHint('Нажмите Escape для отмены');
+        orbitControls.enableZoom = true;
+        e.preventDefault();
+    }
+});
 
-        document.getElementById('btn-ungroup').addEventListener('click', () => {
-            if (!selectedObject || selectedObject.type !== 'group') {
-                setStatus('Выделите группу для разгруппировки');
-                return;
-            }
-            const group = selectedObject.mesh;
-            const children = [...group.children];
-            children.forEach(child => {
-                scene.add(child);
-                const pos = child.position.clone();
-                const rot = child.rotation.clone();
-                const sca = child.scale.clone();
-                const newObj = {
-                    mesh: child,
-                    id: child.userData.id || objectIdCounter++,
-                    type: child.userData.type || 'unknown',
-                    data: {
-                        position: pos,
-                        rotation: rot,
-                        scale: sca,
-                        color: child.material ? child.material.color.getHex() : 0xffaa00,
-                        texture: null,
-                        collision: true,
-                    }
-                };
-                sceneObjects.push(newObj);
-            });
-            scene.remove(group);
-            const idx = sceneObjects.indexOf(selectedObject);
-            if (idx !== -1) sceneObjects.splice(idx, 1);
-            selectedObject = null;
-            transformControls.detach();
-            updateObjectList();
-            hideProperties();
-            setStatus('Группа разгруппирована');
-        });
+// ----- ИНИЦИАЛИЗАЦИЯ -----
+await loadTextures();
+initTerrain();
+setMode('none');
 
-        // ----- КОПИРОВАНИЕ / ВСТАВКА -----
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.code === 'KeyC') {
-                if (selectedObject) {
-                    clipboard = selectedObject;
-                    setStatus(`Скопирован ${selectedObject.type} #${selectedObject.id}`);
-                }
-                e.preventDefault();
-            }
-            if (e.ctrlKey && e.code === 'KeyV') {
-                if (clipboard) {
-                    duplicateObject(clipboard);
-                }
-                e.preventDefault();
-            }
-            if (e.code === 'Delete' && selectedObject) {
-                removeObject(selectedObject);
-                setStatus('Объект удалён');
-                e.preventDefault();
-            }
-            if (e.code === 'Escape') {
-                // Отмена текущего действия (призму)
-                if (isGhostActive) {
-                    removeGhost();
-                    setStatus('Действие отменено');
-                }
-                e.preventDefault();
-            }
-        });
+// Демо-объекты
+createObject('cube', new THREE.Vector3(2,0.3,2), 0xff0000, 0.6);
+createObject('sphere', new THREE.Vector3(-2,0.3,-1), 0x00ff00, 0.8);
+createWall(-1,-1,2,-1,2.5,0.3,'stone');
+createWall(2,-1,2,2,2.5,0.3,'stone');
+createWall(2,2,-1,2,2.5,0.3,'stone2');
+createWall(-1,2,-1,-1,2.5,0.3,'wood');
 
-        // ----- ОБРАБОТКА ДВОЙНОГО КЛИКА -----
-        renderer.domElement.addEventListener('dblclick', (event) => {
-            if (currentMode === 'wall') {
-                if (!isGhostActive) {
-                    // Первый двойной клик — начальная точка стены
-                    const hit = getTerrainIntersection(event);
-                    if (hit) {
-                        const point = hit.point;
-                        const snapped = snapPoint(point.x, point.z);
-                        ghostStartPoint = new THREE.Vector3(snapped.x, 0, snapped.y);
-                        // Создаём призму стены
-                        const width = WALL_WIDTH_DEFAULT;
-                        const height = WALL_HEIGHT_DEFAULT;
-                        ghostObject = createGhostWall(ghostStartPoint.x, ghostStartPoint.z, width, height);
-                        ghostObject.visible = false; // пока не видим
-                        isGhostActive = true;
-                        ghostType = 'wall';
-                        ghostData = { width, height };
-                        document.getElementById('hint').textContent = 'Кликните дважды для фиксации стены (колёсико — ширина)';
-                        setStatus('Выберите конечную точку стены (двойной клик)');
-                    }
-                } else {
-                    // Второй двойной клик — фиксация стены
-                    const hit = getTerrainIntersection(event);
-                    if (hit && ghostStartPoint) {
-                        const point = hit.point;
-                        const snapped = snapPoint(point.x, point.z);
-                        const endX = snapped.x;
-                        const endZ = snapped.y;
-                        // Создаём реальную стену
-                        const width = ghostData.width || WALL_WIDTH_DEFAULT;
-                        const height = ghostData.height || WALL_HEIGHT_DEFAULT;
-                        const wall = createWall(ghostStartPoint.x, ghostStartPoint.z, endX, endZ, height, width);
-                        if (wall) {
-                            setStatus('Стена создана');
-                        }
-                        removeGhost();
-                    }
-                }
-            } else if (currentMode === 'object') {
-                if (!isGhostActive) {
-                    // Первый двойной клик — появится призрачный объект
-                    const hit = getTerrainIntersection(event);
-                    if (hit) {
-                        const point = hit.point;
-                        const snapped = snapPoint(point.x, point.z);
-                        const pos = new THREE.Vector3(snapped.x, 0, snapped.y);
-                        const activeBtn = document.querySelector('#object-palette .active');
-                        if (activeBtn) {
-                            const type = activeBtn.dataset.object;
-                            const color = 0x4a9eff;
-                            ghostObject = createGhostObject(type, pos, color);
-                            isGhostActive = true;
-                            ghostType = 'object';
-                            ghostData = { type };
-                            document.getElementById('hint').textContent = 'Кликните дважды для фиксации предмета';
-                            setStatus(`Выберите место для ${type} (двойной клик)`);
-                        }
-                    }
-                } else {
-                    // Второй двойной клик — фиксация предмета
-                    const hit = getTerrainIntersection(event);
-                    if (hit) {
-                        const point = hit.point;
-                        const snapped = snapPoint(point.x, point.z);
-                        const pos = new THREE.Vector3(snapped.x, 0, snapped.y);
-                        const type = ghostData.type;
-                        const obj = createObject(type, pos);
-                        if (obj) {
-                            selectObject(obj);
-                            setStatus(`Предмет "${type}" добавлен`);
-                        }
-                        removeGhost();
-                    }
-                }
-            }
-        });
+setStatus('Редактор 5.1 загружен. Нажмите Escape для отмены.');
 
-        // ----- ДВИЖЕНИЕ МЫШИ (обновление призмы) -----
-        renderer.domElement.addEventListener('mousemove', (event) => {
-            if (!isGhostActive) return;
-            const hit = getTerrainIntersection(event);
-            if (!hit) return;
-            const point = hit.point;
-            const snapped = snapPoint(point.x, point.z);
-            const posX = snapped.x;
-            const posZ = snapped.y;
+// ----- АНИМАЦИЯ -----
+function animate() {
+    requestAnimationFrame(animate);
+    orbitControls.update();
+    renderer.render(scene, camera);
+}
+animate();
 
-            if (ghostType === 'wall' && ghostStartPoint) {
-                const width = ghostData.width || WALL_WIDTH_DEFAULT;
-                const height = ghostData.height || WALL_HEIGHT_DEFAULT;
-                updateGhostWall(ghostObject, ghostStartPoint.x, ghostStartPoint.z, posX, posZ, width, height);
-            } else if (ghostType === 'object') {
-                const pos = new THREE.Vector3(posX, 0, posZ);
-                updateGhostObject(ghostObject, pos);
-            }
-        });
+window.addEventListener('resize', () => {
+    const w = container.clientWidth, h = container.clientHeight;
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+});
 
-        // ----- КОЛЁСИКО ДЛЯ ИЗМЕНЕНИЯ ШИРИНЫ СТЕНЫ -----
-        renderer.domElement.addEventListener('wheel', (event) => {
-            if (isGhostActive && ghostType === 'wall') {
-                const delta = Math.sign(event.deltaY) * -1; // -1 вверх, +1 вниз
-                let newWidth = (ghostData.width || WALL_WIDTH_DEFAULT) + delta * 0.05;
-                newWidth = Math.max(0.1, Math.min(1.0, newWidth));
-                ghostData.width = newWidth;
-                // Обновить призму с новой шириной
-                if (ghostStartPoint) {
-                    // Пересоздаём призму с новой шириной (или обновляем геометрию)
-                    const height = ghostData.height || WALL_HEIGHT_DEFAULT;
-                    // Удаляем старую, создаём новую
-                    scene.remove(ghostObject);
-                    ghostObject = createGhostWall(ghostStartPoint.x, ghostStartPoint.z, newWidth, height);
-                    ghostObject.visible = false;
-                    // Обновим позицию в mousemove (сработает при следующем движении)
-                    // Но чтобы сразу увидеть, вызовем mousemove с текущими координатами
-                    const fakeEvent = new MouseEvent('mousemove', {
-                        clientX: window.innerWidth/2,
-                        clientY: window.innerHeight/2,
-                    });
-                    renderer.domElement.dispatchEvent(fakeEvent);
-                }
-                setStatus(`Ширина стены: ${newWidth.toFixed(2)} м`);
-                event.preventDefault();
-            }
-        });
-
-        // ----- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ -----
-        function snapPoint(x, z) {
-            if (!snapEnabled) return { x, y: z };
-            const sx = Math.round(x / SNAP_GRID) * SNAP_GRID;
-            const sz = Math.round(z / SNAP_GRID) * SNAP_GRID;
-            return { x: sx, y: sz };
-        }
-
-        function getTerrainIntersection(event) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            const mouse = new THREE.Vector2(
-                ((event.clientX - rect.left) / rect.width) * 2 - 1,
-                -((event.clientY - rect.top) / rect.height) * 2 + 1
-            );
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(terrain);
-            if (intersects.length > 0) {
-                return intersects[0];
-            }
-            return null;
-        }
-
-        function getObjectIntersection(event) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            const mouse = new THREE.Vector2(
-                ((event.clientX - rect.left) / rect.width) * 2 - 1,
-                -((event.clientY - rect.top) / rect.height) * 2 + 1
-            );
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, camera);
-            const meshes = sceneObjects.map(o => o.mesh);
-            const intersects = raycaster.intersectObjects(meshes, true);
-            if (intersects.length > 0) {
-                let obj = intersects[0].object;
-                while (obj && !obj.userData.isObject) {
-                    obj = obj.parent;
-                }
-                if (obj && obj.userData.isObject) {
-                    const objData = sceneObjects.find(o => o.id === obj.userData.id);
-                    return objData;
-                }
-            }
-            return null;
-        }
-
-        // ----- КЛИКИ ДЛЯ ДРУГИХ РЕЖИМОВ (рельеф, выделение, удаление) -----
-        renderer.domElement.addEventListener('click', (event) => {
-            if (currentMode === 'terrain') {
-                const hit = getTerrainIntersection(event);
-                if (hit) {
-                    const point = hit.point;
-                    const radius = parseFloat(document.getElementById('brush-radius').value);
-                    const strength = parseFloat(document.getElementById('brush-strength').value);
-                    const isRight = event.button === 2;
-                    const mode = isRight ? 'lower' : 'raise';
-                    modifyTerrain(point.x, point.z, radius, strength, mode);
-                }
-            } else if (currentMode === 'select') {
-                const objData = getObjectIntersection(event);
-                if (objData) {
-                    selectObject(objData);
-                } else {
-                    selectObject(null);
-                }
-            } else if (currentMode === 'delete') {
-                const objData = getObjectIntersection(event);
-                if (objData) {
-                    removeObject(objData);
-                    setStatus('Объект удалён');
-                }
-            }
-        });
-
-        renderer.domElement.addEventListener('contextmenu', (event) => {
-            if (currentMode === 'terrain') {
-                event.preventDefault();
-            }
-        });
-
-        // ----- ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ -----
-        function setMode(mode) {
-            currentMode = mode;
-            document.querySelectorAll('#toolbar button[data-mode]').forEach(b => b.classList.remove('active'));
-            const btn = document.querySelector(`#toolbar button[data-mode="${mode}"]`);
-            if (btn) btn.classList.add('active');
-
-            document.getElementById('brush-settings').style.display = (mode === 'terrain') ? 'flex' : 'none';
-            document.getElementById('object-palette').style.display = (mode === 'object') ? 'flex' : 'none';
-
-            // Если была призма, сбросить
-            if (isGhostActive) removeGhost();
-
-            const modeNames = {
-                terrain: 'Рельеф — ЛКМ поднять, ПКМ опустить',
-                wall: 'Стены — двойной клик начало, двойной клик конец',
-                object: 'Предметы — двойной клик для размещения',
-                select: 'Выделение — клик по объекту',
-                delete: 'Удаление — клик по объекту'
-            };
-            setStatus(`Режим: ${modeNames[mode] || mode}`);
-            document.getElementById('hint').textContent = mode === 'terrain' ? 'ЛКМ — поднять, ПКМ — опустить' :
-                mode === 'wall' ? 'Двойной клик — начало, ещё двойной — конец' :
-                mode === 'object' ? 'Двойной клик — разместить предмет' :
-                mode === 'select' ? 'Клик по объекту для выделения' :
-                'Клик по объекту для удаления';
-        }
-
-        document.querySelectorAll('#toolbar button[data-mode]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const mode = btn.dataset.mode;
-                if (mode === 'clear') {
-                    if (confirm('Удалить все объекты и сбросить ландшафт?')) {
-                        clearAll();
-                        setStatus('Всё очищено');
-                    }
-                    return;
-                }
-                setMode(mode);
-            });
-        });
-
-        // ----- ВЫБОР ОБЪЕКТА В ПАЛИТРЕ -----
-        document.querySelectorAll('#object-palette button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('#object-palette button').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
-        });
-
-        // ----- НАСТРОЙКИ КИСТИ -----
-        document.getElementById('brush-radius').addEventListener('input', (e) => {
-            document.getElementById('radius-label').textContent = parseFloat(e.target.value).toFixed(1);
-        });
-        document.getElementById('brush-strength').addEventListener('input', (e) => {
-            document.getElementById('strength-label').textContent = parseFloat(e.target.value).toFixed(1);
-        });
-
-        // ----- ВКЛЮЧЕНИЕ/ОТКЛЮЧЕНИЕ ПРИВЯЗКИ К СЕТКЕ (по умолчанию вкл) -----
-        // Добавим кнопку в тулбар? Пока просто включим.
-        // Можно добавить горячую клавишу G для переключения
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'KeyG' && !e.ctrlKey) {
-                snapEnabled = !snapEnabled;
-                setStatus(`Привязка к сетке: ${snapEnabled ? 'вкл' : 'выкл'}`);
-                e.preventDefault();
-            }
-        });
-
-        // ----- ЭКСПОРТ В HTML (упрощённо) -----
-        function exportGame() {
-            // Собираем данные (аналогично предыдущей версии)
-            // Для краткости оставлю заглушку, но в реальности код экспорта из прошлой версии можно вставить.
-            // Здесь я его пропущу, чтобы не раздувать, но он есть в предыдущем коде.
-            setStatus('Экспорт временно отключён для демонстрации');
-        }
-
-        document.getElementById('btn-export-game').addEventListener('click', exportGame);
-
-        // ----- СОХРАНЕНИЕ / ЗАГРУЗКА (упрощённо) -----
-        document.getElementById('btn-save-project').addEventListener('click', () => {
-            setStatus('Сохранение временно отключено');
-        });
-        document.getElementById('btn-load-project').addEventListener('click', () => {
-            setStatus('Загрузка временно отключена');
-        });
-
-        // ----- ОБНОВЛЕНИЕ СТАТУСА -----
-        function setStatus(msg) {
-            document.getElementById('status').textContent = msg;
-        }
-
-        function updateObjectList() {
-            // Не выводим список, просто обновляем статус
-            setStatus(`Объектов: ${sceneObjects.length} | Режим: ${currentMode}`);
-        }
-
-        // ----- ИНИЦИАЛИЗАЦИЯ -----
-        await loadTextures();
-        initTerrain();
-        setMode('terrain');
-
-        // Добавим демо-объекты
-        createObject('cube', new THREE.Vector3(2, 0.3, 2), 0xff0000, 0.6);
-        createObject('sphere', new THREE.Vector3(-2, 0.3, -1), 0x00ff00, 0.8);
-        createObject('tree', new THREE.Vector3(3, 0, -2));
-        createObject('table', new THREE.Vector3(-3, 0, 1));
-        createWall(-1, -1, 2, -1);
-        createWall(2, -1, 2, 2);
-        createWall(2, 2, -1, 2);
-        createWall(-1, 2, -1, -1);
-
-        setStatus('Редактор загружен! Используйте двойной клик для размещения.');
-
-        // ----- АНИМАЦИЯ -----
-        function animate() {
-            requestAnimationFrame(animate);
-            orbitControls.update();
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        console.log('Редактор 3.0 с двойным кликом загружен!');
-    </script>
+console.log('Редактор 5.1 загружен');
+</script>
 </body>
 </html>
