@@ -249,6 +249,20 @@
             </div>
         </div>
 
+        <!-- НОВАЯ КАТЕГОРИЯ: ВРЕМЯ СУТОК -->
+        <div class="category">
+            <div class="title">🌞 Время суток</div>
+            <div class="slider-group">
+                <label>Часы <span id="time-label">12:00</span></label>
+                <input type="range" id="time-slider" min="0" max="24" step="0.1" value="12">
+            </div>
+            <div style="display:flex;gap:6px;margin-top:4px;">
+                <button id="time-auto" style="flex:1;background:rgba(255,200,50,0.2);border:1px solid #ffaa00;color:#ffaa00;padding:4px;border-radius:12px;font-size:11px;cursor:pointer;">▶ Авто</button>
+                <button id="time-day" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid #666;color:#ccc;padding:4px;border-radius:12px;font-size:11px;cursor:pointer;">☀️ День</button>
+                <button id="time-night" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid #666;color:#ccc;padding:4px;border-radius:12px;font-size:11px;cursor:pointer;">🌙 Ночь</button>
+            </div>
+        </div>
+
         <div class="category">
             <div class="title">🧱 Стены</div>
             <div class="items" id="wall-items">
@@ -429,11 +443,9 @@ function createTextureFromBase64(b64) {
     img.src = b64;
     const tex = new THREE.Texture(img);
     tex.needsUpdate = true;
-    // Улучшаем качество: фильтрация и повторение
     tex.minFilter = THREE.LinearMipmapLinearFilter;
     tex.magFilter = THREE.LinearFilter;
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    // Устанавливаем повторение для стен (будет переопределено в createWall)
     tex.repeat.set(1, 1);
     return tex;
 }
@@ -469,7 +481,7 @@ function initTerrain() {
     if (textureData.trawa) {
         const tex = createTextureFromBase64(textureData.trawa);
         if (tex) {
-            tex.repeat.set(20, 20); // увеличиваем повторение для лучшего качества
+            tex.repeat.set(20, 20);
             terrainMat.map = tex;
             terrainMat.color.setHex(0xffffff);
             terrainMat.needsUpdate = true;
