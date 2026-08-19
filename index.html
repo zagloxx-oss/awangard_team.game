@@ -38,6 +38,7 @@
             color: #fff;
             transition: opacity 0.8s;
             overflow: hidden;
+            pointer-events: none; /* чтобы можно было тыкать в редактор под ним */
         }
         #splash-container {
             position: relative;
@@ -59,7 +60,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.2);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -67,7 +68,7 @@
         }
         #splash-text {
             color: #fff;
-            font-size: clamp(24px, 8vw, 60px);
+            font-size: clamp(20px, 6vw, 50px);
             text-align: center;
             font-weight: bold;
             text-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
@@ -88,18 +89,19 @@
             left: 50%;
             transform: translateX(-50%);
             width: 60%;
-            max-width: 300px;
-            height: 6px;
+            max-width: 400px;
+            height: 8px;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             overflow: hidden;
             z-index: 10;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
-        #loading-bar-editor div {
+        #loading-bar-fill {
             width: 0%;
             height: 100%;
             background: #4a9eff;
-            transition: width 0.3s;
+            transition: width 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
             border-radius: 10px;
         }
 
@@ -109,7 +111,7 @@
             top: 12px;
             left: 16px;
             z-index: 40;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(255, 255, 255, 0.85);
             font-size: clamp(14px, 2.5vw, 22px);
             font-weight: 700;
             text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
@@ -126,8 +128,42 @@
         #app-title .version {
             font-weight: 300;
             font-size: 0.6em;
-            opacity: 0.6;
+            opacity: 0.7;
             margin-left: 6px;
+        }
+
+        /* ===== КНОПКА ПОЛНОЭКРАННОГО РЕЖИМА ===== */
+        #fullscreen-btn {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 44px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ccc;
+            font-size: clamp(12px, 2.5vw, 18px);
+            font-weight: 500;
+            cursor: pointer;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: 0.5px;
+            transition: background 0.2s;
+            touch-action: manipulation;
+        }
+        #fullscreen-btn:active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        #fullscreen-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
         }
 
         /* ===== ОСНОВНОЙ КОНТЕЙНЕР ===== */
@@ -418,7 +454,7 @@
         /* ===== СТАТУС ===== */
         #status {
             position: absolute;
-            bottom: 10px;
+            bottom: 54px; /* чтобы не перекрывала кнопка fullscreen */
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.7);
@@ -437,7 +473,7 @@
         }
         #hint {
             position: absolute;
-            bottom: 50px;
+            bottom: 90px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.4);
@@ -598,7 +634,7 @@
         /* ===== ДЖОЙСТИК ===== */
         #touch-joystick {
             position: absolute;
-            bottom: 30px;
+            bottom: 80px;
             left: 20px;
             width: 120px;
             height: 120px;
@@ -641,7 +677,7 @@
                 display: block;
                 width: 120px;
                 height: 120px;
-                bottom: 30px;
+                bottom: 80px;
                 left: 15px;
             }
             #touch-joystick .stick {
@@ -653,7 +689,7 @@
             #touch-joystick {
                 width: 130px;
                 height: 130px;
-                bottom: 100px;
+                bottom: 110px;
                 left: 15px;
             }
             #touch-joystick .stick {
@@ -665,7 +701,7 @@
             #touch-joystick {
                 width: 100px;
                 height: 100px;
-                bottom: 20px;
+                bottom: 70px;
                 left: 15px;
             }
             #touch-joystick .stick {
@@ -677,7 +713,7 @@
         /* ===== КНОПКА F ===== */
         #action-btn {
             position: absolute;
-            bottom: 30px;
+            bottom: 80px;
             right: 20px;
             width: 60px;
             height: 60px;
@@ -707,7 +743,7 @@
                 display: flex;
                 width: 60px;
                 height: 60px;
-                bottom: 30px;
+                bottom: 80px;
                 right: 15px;
                 font-size: 22px;
             }
@@ -716,7 +752,7 @@
             #action-btn {
                 width: 70px;
                 height: 70px;
-                bottom: 100px;
+                bottom: 110px;
                 right: 15px;
                 font-size: 28px;
             }
@@ -764,6 +800,12 @@
     <div id="app-title">
         AWANGARD-engine <span class="version">v8.1</span>
     </div>
+
+    <!-- ===== КНОПКА ПОЛНОЭКРАННОГО РЕЖИМА ===== -->
+    <button id="fullscreen-btn">
+        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        <span id="fullscreen-text">На весь экран</span>
+    </button>
 
     <!-- ===== МОДАЛКИ ===== -->
     <div id="modal-overlay">
@@ -1006,14 +1048,14 @@
 
     <script type="module">
         // ================================================================
-        //  ПОЛНЫЙ КОД РЕДАКТОРА – ИСПРАВЛЕННАЯ ВЕРСИЯ
+        //  ПОЛНЫЙ КОД РЕДАКТОРА – ЗАГРУЗКА ПАРАЛЛЕЛЬНО
         // ================================================================
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
         // -----------------------------------------------------------------
-        // 1. ЗАГРУЗОЧНЫЙ ЭКРАН
+        // 1. ЗАГРУЗОЧНЫЙ ЭКРАН – НЕ БЛОКИРУЕТ СЦЕНУ
         // -----------------------------------------------------------------
         const loadingScreen = document.getElementById('loading-screen-editor');
         const splashImgs = [document.getElementById('splash1'), document.getElementById('splash2'), document.getElementById(
@@ -1022,78 +1064,68 @@
         const barFill = document.getElementById('loading-bar-fill');
 
         let splashIndex = 0;
-        const SPLASH_DURATION = 6.5;
+        const SPLASH_DURATION = 10; // секунд на картинку
         let texturesLoaded = false;
         let splashDone = false;
 
-        function showSplash(index) {
-            splashImgs.forEach((img, i) => {
-                img.style.display = (i === index) ? 'block' : 'none';
-            });
-        }
-        showSplash(0);
+        // Показываем первую картинку
+        splashImgs.forEach((img, i) => { img.style.display = (i === 0) ? 'block' : 'none'; });
 
+        // Неравномерная шкала – скачками
+        let fakeProgress = 0;
+        const barInterval = setInterval(() => {
+            if (fakeProgress < 30) fakeProgress += 3 + Math.random() * 5;
+            else if (fakeProgress < 70) fakeProgress += 1.5 + Math.random() * 4;
+            else if (fakeProgress < 95) fakeProgress += 0.5 + Math.random() * 2;
+            else if (fakeProgress < 100) fakeProgress += 0.1 + Math.random() * 0.5;
+            if (fakeProgress > 100) fakeProgress = 100;
+            barFill.style.width = fakeProgress + '%';
+            if (fakeProgress >= 100) clearInterval(barInterval);
+        }, 500);
+
+        // Таймер смены картинок (каждая по 10 сек)
         let splashInterval = setInterval(() => {
             splashIndex++;
             if (splashIndex < 3) {
-                showSplash(splashIndex);
+                splashImgs.forEach((img, i) => { img.style.display = (i === splashIndex) ? 'block' : 'none'; });
             } else {
                 clearInterval(splashInterval);
                 splashDone = true;
-                startBlinking();
+                // Показываем надпись и скрываем картинки
+                splashImgs.forEach(img => img.style.display = 'none');
+                splashText.style.display = 'block';
+                // Через 2 секунды убираем надпись и через 1 сек снова – 3 цикла
+                let blinkCount = 0;
+                const blinkInterval = setInterval(() => {
+                    if (blinkCount < 6) {
+                        splashText.style.display = (blinkCount % 2 === 0) ? 'none' : 'block';
+                        blinkCount++;
+                    } else {
+                        clearInterval(blinkInterval);
+                        // Скрываем экран, если текстуры загружены
+                        if (texturesLoaded) {
+                            loadingScreen.style.opacity = '0';
+                            setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
+                        } else {
+                            // Ждём загрузки
+                            const wait = setInterval(() => {
+                                if (texturesLoaded) {
+                                    clearInterval(wait);
+                                    loadingScreen.style.opacity = '0';
+                                    setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
+                                }
+                            }, 200);
+                        }
+                    }
+                }, 1000); // 1 сек переключение
             }
         }, SPLASH_DURATION * 1000);
 
-        let blinkCount = 0;
-        const BLINK_CYCLES = 3;
-
-        function startBlinking() {
-            splashImgs.forEach(img => img.style.display = 'none');
-            splashText.style.display = 'block';
-            // Первый цикл: 1 сек скрыто, 2 сек показано
-            setTimeout(() => {
-                splashText.style.display = 'none';
-                setTimeout(() => {
-                    splashText.style.display = 'block';
-                    setTimeout(() => {
-                        splashText.style.display = 'none';
-                        setTimeout(() => {
-                            splashText.style.display = 'block';
-                            setTimeout(() => {
-                                splashText.style.display = 'none';
-                                // Третий цикл
-                                setTimeout(() => {
-                                    splashText.style.display = 'block';
-                                    setTimeout(() => {
-                                        splashText.style.display = 'none';
-                                        finishLoading();
-                                    }, 2000);
-                                }, 1000);
-                            }, 2000);
-                        }, 1000);
-                    }, 2000);
-                }, 1000);
-            }, 1000);
-        }
-
-        function finishLoading() {
-            if (texturesLoaded) {
-                loadingScreen.style.opacity = '0';
-                setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
-            } else {
-                const waitInterval = setInterval(() => {
-                    if (texturesLoaded) {
-                        clearInterval(waitInterval);
-                        loadingScreen.style.opacity = '0';
-                        setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
-                    }
-                }, 200);
-            }
-        }
-
         // -----------------------------------------------------------------
-        // 2. ЗАГРУЗКА ТЕКСТУР
+        // 2. ОСНОВНОЙ КОД РЕДАКТОРА (запускается сразу)
         // -----------------------------------------------------------------
+
+        // --- РАЗМЕР КАРТЫ ---
         let MAP_SIZE = 500,
             SEGMENTS = 40;
         const sz = prompt('Введите размер карты (м):', '500');
@@ -1102,6 +1134,7 @@
             SEGMENTS = Math.max(16, Math.min(80, Math.floor(3000 / MAP_SIZE * 80)));
         }
 
+        // --- КОНСТАНТЫ ---
         const MAX_HEIGHT = 999,
             MIN_HEIGHT = -999;
         const WALL_HEIGHT_DEFAULT = 2.5,
@@ -1109,7 +1142,7 @@
             SNAP_GRID = 0.5;
         const FALLBACK_TEXTURE_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARzQklUCAgICHwIZAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABdJREFUOE9j/P//PwM6YGL8TwD5QCwAEPQBDb2y80cAAAAASUVORK5CYII=';
 
-        // Состояние редактора
+        // --- СОСТОЯНИЕ ---
         let currentMode = 'none';
         let reliefAction = 'raise';
         let selectedObject = null;
@@ -1134,7 +1167,7 @@
         const textureExtensions = { trawa: 'jpg', stena: 'jpg', stena2: 'jpg', dpol: 'jpg', zemla: 'jpg', zemla2: 'jpg',
             nebo: 'jpg', bereza: 'png' };
 
-        // Кисть
+        // --- КИСТЬ ---
         let brushTextureLayer = null;
         let brushCanvas = null;
         let brushCtx = null;
@@ -1143,7 +1176,7 @@
         let brushSize = 0.5;
         let brushShape = 'circle';
 
-        // Звук, свет, время
+        // --- ЗВУК, СВЕТ, ВРЕМЯ ---
         let soundFileData = null;
         let soundVolume = 0.8;
         let soundDistance = 10;
@@ -1153,9 +1186,7 @@
         let timeAuto = false;
         let timeInterval = null;
 
-        // -----------------------------------------------------------------
-        // 3. СЦЕНА
-        // -----------------------------------------------------------------
+        // --- СЦЕНА ---
         const container = document.getElementById('canvas-wrap');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x6da5c9);
@@ -1187,7 +1218,7 @@
         scene.add(transformControls);
         transformControls.addEventListener('dragging-changed', (e) => { orbitControls.enabled = !e.value; });
 
-        // Освещение
+        // --- ОСВЕЩЕНИЕ ---
         const ambient = new THREE.AmbientLight(0x404060, 0.5);
         scene.add(ambient);
         const sun = new THREE.DirectionalLight(0xffeedd, 1.8);
@@ -1206,9 +1237,7 @@
         fill.position.set(-20, 10, -20);
         scene.add(fill);
 
-        // -----------------------------------------------------------------
-        // 4. ТЕКСТУРЫ (загрузка)
-        // -----------------------------------------------------------------
+        // --- ТЕКСТУРЫ (загрузка параллельно) ---
         async function loadTextures() {
             let loaded = 0;
             const total = textureNames.length;
@@ -1223,7 +1252,9 @@
                         reader.onload = () => {
                             textureData[name] = reader.result;
                             loaded++;
-                            barFill.style.width = (loaded / total * 100) + '%';
+                            // Обновляем прогресс (плавно)
+                            const progress = loaded / total;
+                            // Не трогаем fakeProgress, чтобы не сбивать
                             resolve();
                         };
                         reader.readAsDataURL(blob);
@@ -1232,10 +1263,16 @@
                     console.warn(`Не удалось загрузить текстуру ${name}.${ext}`, e);
                     textureData[name] = null;
                     loaded++;
-                    barFill.style.width = (loaded / total * 100) + '%';
                 }
             }
             texturesLoaded = true;
+            // Если экран ещё не скрыт, скроем его после небольшой паузы
+            if (loadingScreen.style.display !== 'none') {
+                setTimeout(() => {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
+                }, 500);
+            }
         }
 
         function createTextureFromBase64(b64) {
@@ -1251,9 +1288,7 @@
             return tex;
         }
 
-        // -----------------------------------------------------------------
-        // 5. ЛАНДШАФТ
-        // -----------------------------------------------------------------
+        // --- ЛАНДШАФТ ---
         const geometry = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE, SEGMENTS, SEGMENTS);
         geometry.rotateX(-Math.PI / 2);
         const posAttr = geometry.attributes.position;
@@ -1332,9 +1367,7 @@
         gridFine.material.opacity = 0.2;
         scene.add(gridFine);
 
-        // -----------------------------------------------------------------
-        // 6. РЕЛЬЕФ
-        // -----------------------------------------------------------------
+        // --- РЕЛЬЕФ ---
         function averageHeightInRadius(x, z, radius) {
             let sum = 0,
                 count = 0;
@@ -1379,9 +1412,7 @@
             updateTerrain();
         }
 
-        // -----------------------------------------------------------------
-        // 7. КИСТЬ
-        // -----------------------------------------------------------------
+        // --- КИСТЬ ---
         function paintTextureOnTerrain(event) {
             if (!brushSelectedTexture) { setStatus('Сначала выберите текстуру кисти'); return; }
             const hit = getTerrainIntersection(event);
@@ -1411,9 +1442,7 @@
             img.src = brushSelectedTexture;
         }
 
-        // -----------------------------------------------------------------
-        // 8. ОБЪЕКТЫ (полный набор)
-        // -----------------------------------------------------------------
+        // --- ОБЪЕКТЫ (полный набор) ---
         function createObject(type, pos, color = 0xffaa00, size = 0.6) {
             // Пользовательский спрайт
             if (type.startsWith('user_')) {
@@ -2013,9 +2042,7 @@
             return obj;
         }
 
-        // -----------------------------------------------------------------
-        // 9. СТЕНЫ
-        // -----------------------------------------------------------------
+        // --- СТЕНЫ ---
         function createWall(x1, z1, x2, z2, height = WALL_HEIGHT_DEFAULT, width = WALL_WIDTH_DEFAULT, type = 'wood',
             angleDeg = 60) {
             if (type === 'triangle') {
@@ -2135,9 +2162,7 @@
             }
         }
 
-        // -----------------------------------------------------------------
-        // 10. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-        // -----------------------------------------------------------------
+        // --- ВСПОМОГАТЕЛЬНЫЕ ---
         function removeObject(obj) {
             scene.remove(obj.mesh);
             const idx = sceneObjects.indexOf(obj);
@@ -2220,9 +2245,7 @@
                 setStatus('Объект дублирован'); }
         }
 
-        // -----------------------------------------------------------------
-        // 11. ПОЛЬЗОВАТЕЛЬСКИЕ ТЕКСТУРЫ
-        // -----------------------------------------------------------------
+        // --- ПОЛЬЗОВАТЕЛЬСКИЕ ТЕКСТУРЫ ---
         function addUserTexture(name, type, dataURL) {
             if (userTextures.some(u => u.name === name)) { setStatus('Текстура с таким именем уже существует'); return false; }
             userTextures.push({ name, type, dataURL });
@@ -2280,9 +2303,7 @@
             });
         }
 
-        // -----------------------------------------------------------------
-        // 12. ФУНКЦИИ ДЛЯ ПРЕДМЕТОВ
-        // -----------------------------------------------------------------
+        // --- ФУНКЦИИ ДЛЯ ПРЕДМЕТОВ ---
         function applyFunctionToObject(obj, func) {
             if (!obj) return;
             const pos = obj.data.position;
@@ -2325,9 +2346,7 @@
             setStatus(`Дверь ${obj.data.isOpen ? 'открыта' : 'закрыта'}`);
         }
 
-        // -----------------------------------------------------------------
-        // 13. ПЕРЕСЕЧЕНИЯ
-        // -----------------------------------------------------------------
+        // --- ПЕРЕСЕЧЕНИЯ ---
         function getTerrainIntersection(e) {
             const rect = renderer.domElement.getBoundingClientRect();
             const mouse = new THREE.Vector2(
@@ -2361,9 +2380,7 @@
             return null;
         }
 
-        // -----------------------------------------------------------------
-        // 14. ДВОЙНОЙ КЛИК (размещение)
-        // -----------------------------------------------------------------
+        // --- ДВОЙНОЙ КЛИК (размещение) ---
         renderer.domElement.addEventListener('dblclick', (e) => {
             if (currentMode === 'walls') {
                 if (!isGhostActive) {
@@ -2510,9 +2527,7 @@
             }
         });
 
-        // -----------------------------------------------------------------
-        // 15. ОБНОВЛЕНИЕ ПРИЗРАКА
-        // -----------------------------------------------------------------
+        // --- ОБНОВЛЕНИЕ ПРИЗРАКА ---
         function updateGhostSmooth() {
             if (!isGhostActive || !ghostObject) return;
             if (ghostType === 'wall' && ghostStartPoint) {
@@ -2544,9 +2559,7 @@
             }
         }
 
-        // -----------------------------------------------------------------
-        // 16. ОБРАБОТЧИКИ МЫШИ/ТАЧ
-        // -----------------------------------------------------------------
+        // --- ОБРАБОТЧИКИ МЫШИ/ТАЧ ---
         renderer.domElement.addEventListener('mousemove', (e) => {
             if (!isGhostActive || !ghostObject) return;
             const hit = getTerrainIntersection(e);
@@ -2635,9 +2648,7 @@
             }
         });
 
-        // -----------------------------------------------------------------
-        // 17. ПАНЕЛЬ УПРАВЛЕНИЯ
-        // -----------------------------------------------------------------
+        // --- ПАНЕЛЬ УПРАВЛЕНИЯ ---
         document.querySelectorAll('#relief-mode button').forEach(b => {
             b.addEventListener('click', () => {
                 document.querySelectorAll('#relief-mode button').forEach(x => x.classList.remove('active'));
@@ -2819,9 +2830,7 @@
             setStatus('Группа разгруппирована');
         });
 
-        // -----------------------------------------------------------------
-        // 18. МОДАЛКИ
-        // -----------------------------------------------------------------
+        // --- МОДАЛКИ ---
         const modal = document.getElementById('modal-overlay');
         const fileDrop = document.getElementById('file-drop');
         const fileInput = document.getElementById('file-input');
@@ -2936,9 +2945,7 @@
             }
         });
 
-        // -----------------------------------------------------------------
-        // 19. ТРАНСФОРМ + ВРЕМЯ
-        // -----------------------------------------------------------------
+        // --- ТРАНСФОРМ + ВРЕМЯ ---
         transformControls.addEventListener('objectChange', () => {
             if (selectedObject) {
                 const m = selectedObject.mesh;
@@ -3005,9 +3012,7 @@
             }
         });
 
-        // -----------------------------------------------------------------
-        // 20. СОХРАНЕНИЕ / ЗАГРУЗКА JSON
-        // -----------------------------------------------------------------
+        // --- СОХРАНЕНИЕ / ЗАГРУЗКА JSON ---
         document.getElementById('save-json').addEventListener('click', () => {
             let brushImageData = null;
             if (brushCanvas) { brushImageData = brushCanvas.toDataURL('image/png'); }
@@ -3152,9 +3157,7 @@
             e.target.value = '';
         });
 
-        // -----------------------------------------------------------------
-        // 21. ЭКСПОРТ HTML
-        // -----------------------------------------------------------------
+        // --- ЭКСПОРТ HTML ---
         document.getElementById('export-html').addEventListener('click', () => {
             let brushImageData = null;
             if (brushCanvas) { brushImageData = brushCanvas.toDataURL('image/png'); }
@@ -3795,9 +3798,7 @@
         </html>`;
         }
 
-        // -----------------------------------------------------------------
-        // 22. ИМПОРТ HTML
-        // -----------------------------------------------------------------
+        // --- ИМПОРТ HTML ---
         document.getElementById('import-html-btn').addEventListener('click', () => { document.getElementById(
                 'import-html-input').click(); });
         document.getElementById('import-html-input').addEventListener('change', (e) => {
@@ -3916,9 +3917,7 @@
             e.target.value = '';
         });
 
-        // -----------------------------------------------------------------
-        // 23. ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
-        // -----------------------------------------------------------------
+        // --- ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ---
         function setMode(mode) {
             if (isGhostActive) removeGhost();
             currentMode = mode;
@@ -3939,9 +3938,7 @@
             if (navigator.vibrate) navigator.vibrate(10);
         }
 
-        // -----------------------------------------------------------------
-        // 24. ESCAPE
-        // -----------------------------------------------------------------
+        // --- ESCAPE ---
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 if (isGhostActive) removeGhost();
@@ -3955,24 +3952,20 @@
             }
         });
 
-        // -----------------------------------------------------------------
-        // 25. ОЧИСТКА
-        // -----------------------------------------------------------------
+        // --- ОЧИСТКА ---
         document.getElementById('clear-all').addEventListener('click', () => {
             if (confirm('Удалить всё?')) { clearAll();
                 setStatus('Всё очищено'); }
         });
 
-        // -----------------------------------------------------------------
-        // 26. ДЖОЙСТИК ДЛЯ УПРАВЛЕНИЯ КАМЕРОЙ (мобила)
-        // -----------------------------------------------------------------
+        // --- ДЖОЙСТИК ДЛЯ УПРАВЛЕНИЯ КАМЕРОЙ ---
         const joystickEl = document.getElementById('touch-joystick');
         const stickEl = document.getElementById('joystick-stick');
         let joyActive = false,
             joyX = 0,
             joyY = 0,
             joyTouchId = null;
-        let moveSpeed = 3.0; // скорость перемещения цели
+        let moveSpeed = 3.0;
 
         function isMobile() { return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <
                 1024); }
@@ -4043,9 +4036,7 @@
             }
         });
 
-        // -----------------------------------------------------------------
-        // 27. ДВОЙНОЙ ТАП ДЛЯ МОБИЛ
-        // -----------------------------------------------------------------
+        // --- ДВОЙНОЙ ТАП ДЛЯ МОБИЛ ---
         let lastTapTime = 0;
         let tapTimeout = null;
         let lastTapPos = { x: 0, y: 0 };
@@ -4083,9 +4074,7 @@
             }
         });
 
-        // -----------------------------------------------------------------
-        // 28. ПАНЕЛЬ (открытие на мобиле)
-        // -----------------------------------------------------------------
+        // --- ПАНЕЛЬ (открытие на мобиле) ---
         document.getElementById('panel-toggle').addEventListener('click', () => {
             document.getElementById('panel').classList.toggle('open');
         });
@@ -4094,9 +4083,29 @@
             document.getElementById('panel').classList.toggle('open');
         });
 
-        // -----------------------------------------------------------------
-        // 29. ИНИЦИАЛИЗАЦИЯ
-        // -----------------------------------------------------------------
+        // --- ПОЛНОЭКРАННЫЙ РЕЖИМ ---
+        const fsBtn = document.getElementById('fullscreen-btn');
+        const fsText = document.getElementById('fullscreen-text');
+        fsBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                fsText.textContent = 'Выйти из полноэкрана';
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    fsText.textContent = 'На весь экран';
+                }
+            }
+        });
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fsText.textContent = 'Выйти из полноэкрана';
+            } else {
+                fsText.textContent = 'На весь экран';
+            }
+        });
+
+        // --- ИНИЦИАЛИЗАЦИЯ ---
         await loadTextures();
         initTerrain();
         setMode('none');
@@ -4125,11 +4134,9 @@
         createWall(-1, 2, -1, -1, 2.5, 0.3, 'wood');
         createObject('door', new THREE.Vector3(0, 0, 1.5));
 
-        setStatus('Редактор загружен. На мобиле — джойстик для камеры.');
+        setStatus('Редактор загружен. Кнопка fullscreen внизу.');
 
-        // -----------------------------------------------------------------
-        // 30. АНИМАЦИЯ (с управлением джойстиком)
-        // -----------------------------------------------------------------
+        // --- АНИМАЦИЯ ---
         function animateEditor() {
             requestAnimationFrame(animateEditor);
 
@@ -4143,10 +4150,8 @@
                     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
                     right.y = 0;
                     right.normalize();
-                    // Вперёд/назад (ось Y джойстика)
                     const moveVec = new THREE.Vector3();
                     moveVec.addScaledVector(forward, -joyY * moveSpeed * 0.016);
-                    // Влево/вправо (ось X)
                     moveVec.addScaledVector(right, joyX * moveSpeed * 0.016);
                     orbitControls.target.add(moveVec);
                 }
@@ -4163,27 +4168,16 @@
 
         animateEditor();
 
-        // -----------------------------------------------------------------
-        // 31. РЕСАЙЗ
-        // -----------------------------------------------------------------
+        // --- РЕСАЙЗ ---
         window.addEventListener('resize', () => {
             const w = container.clientWidth,
                 h = container.clientHeight;
             camera.aspect = w / h;
             camera.updateProjectionMatrix();
             renderer.setSize(w, h);
-            if (window.innerWidth < 768) {
-                joystickEl.style.display = 'block';
-                document.getElementById('action-btn').style.display = 'flex';
-            } else {
-                if (!('ontouchstart' in window)) {
-                    joystickEl.style.display = 'none';
-                    document.getElementById('action-btn').style.display = 'none';
-                }
-            }
         });
 
-        console.log('AWANGARD-engine Mobile Ready (исправлено)');
+        console.log('AWANGARD-engine Full Ready');
     </script>
 </body>
 </html>
