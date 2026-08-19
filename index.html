@@ -1,678 +1,96 @@
-<!DOCTYPE html>
+=<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AWANGARD-engine Full</title>
+    <title>AWANGARD-engine</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        html,
-        body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #0a0a1a;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            touch-action: none;
-        }
-        #loading-screen-editor {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #0a0a1a, #1a1a2e, #0a0a1a);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #fff;
-            text-align: center;
-            padding: 20px;
-            transition: opacity 0.8s;
-        }
-        #loading-screen-editor .logo {
-            font-size: clamp(32px, 10vw, 64px);
-            font-weight: 700;
-            background: linear-gradient(45deg, #4a9eff, #6c5ce7, #ff6b6b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: fadeScale 1.5s ease-out;
-        }
-        #loading-screen-editor .sub {
-            font-size: clamp(14px, 4vw, 24px);
-            color: #aaa;
-            margin-top: 6px;
-            opacity: 0;
-            animation: fadeUp 1.5s ease-out 0.4s forwards;
-        }
-        #loading-screen-editor .version {
-            font-size: clamp(11px, 2.5vw, 16px);
-            color: #888;
-            margin-top: 10px;
-            opacity: 0;
-            animation: fadeUp 1s ease-out 1s forwards;
-        }
-        #loading-screen-editor .tip {
-            font-size: clamp(14px, 3.5vw, 20px);
-            max-width: 500px;
-            margin-top: 30px;
-            color: #ccc;
-            padding: 0 16px;
-            opacity: 0;
-            animation: fadeUp 1s ease-out 1.6s forwards;
-        }
-        #loading-screen-editor .bar {
-            width: min(60%, 200px);
-            height: 4px;
-            background: #333;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 24px;
-            opacity: 0;
-            animation: fadeUp 1s ease-out 2s forwards;
-        }
-        #loading-screen-editor .bar div {
-            width: 0%;
-            height: 100%;
-            background: #4a9eff;
-            transition: width 0.4s;
-        }
-        @keyframes fadeScale {
-            0% {
-                opacity: 0;
-                transform: scale(0.8);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-        @keyframes fadeUp {
-            0% {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        #container {
-            display: flex;
-            width: 100vw;
-            height: 100vh;
-            flex-direction: row;
-            position: relative;
-        }
-        #canvas-wrap {
-            flex: 1;
-            position: relative;
-            touch-action: none;
-        }
-        #canvas-wrap canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            touch-action: none;
-        }
-        /* Панель — по умолчанию открыта на ПК, скрыта на мобиле */
-        #panel {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: min(300px, 75vw);
-            background: rgba(16, 16, 32, 0.94);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border-left: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 12px 10px;
-            overflow-y: auto;
-            z-index: 30;
-            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
-            box-shadow: -8px 0 30px rgba(0, 0, 0, 0.6);
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        /* На ПК — открыта, на мобиле — закрыта (управляется через класс) */
-        @media (min-width: 768px) {
-            #panel {
-                transform: translateX(0);
-            }
-        }
-        @media (max-width: 767px) {
-            #panel {
-                transform: translateX(100%);
-            }
-            #panel.open {
-                transform: translateX(0);
-            }
-        }
-        #panel::-webkit-scrollbar {
-            width: 3px;
-        }
-        #panel::-webkit-scrollbar-thumb {
-            background: #4a9eff;
-            border-radius: 10px;
-        }
-        #panel h2 {
-            font-size: clamp(14px, 2.5vw, 20px);
-            font-weight: 500;
-            color: #aaa;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            padding-bottom: 6px;
-            margin-bottom: 4px;
-        }
-        #panel .category {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 10px;
-            padding: 6px 8px;
-        }
-        #panel .category .title {
-            font-size: clamp(12px, 2vw, 15px);
-            font-weight: 500;
-            color: #ccc;
-            margin-bottom: 3px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        #panel .category .items {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 3px;
-        }
-        #panel .category .items button {
-            background: rgba(255, 255, 255, 0.06);
-            border: none;
-            color: #ccc;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: clamp(10px, 1.8vw, 13px);
-            cursor: pointer;
-            transition: all 0.15s;
-            white-space: nowrap;
-            border: 1px solid transparent;
-            touch-action: manipulation;
-            min-height: 32px;
-        }
-        #panel .category .items button:active {
-            transform: scale(0.94);
-        }
-        #panel .category .items button.active {
-            background: #4a9eff;
-            color: #fff;
-            border-color: #4a9eff;
-        }
-        #panel .category .items button.danger {
-            background: rgba(255, 70, 70, 0.2);
-        }
-        #panel .category .items button.danger.active {
-            background: #ff4444;
-            color: #fff;
-        }
-        #panel .slider-group {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            margin-top: 2px;
-        }
-        #panel .slider-group label {
-            font-size: clamp(10px, 1.8vw, 13px);
-            color: #aaa;
-            display: flex;
-            justify-content: space-between;
-        }
-        #panel .slider-group input[type=range] {
-            width: 100%;
-            accent-color: #4a9eff;
-            background: #333;
-            height: 4px;
-            border-radius: 4px;
-            touch-action: manipulation;
-        }
-        #panel .toggle-group {
-            display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
-        }
-        #panel .toggle-group button {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.06);
-            border: none;
-            color: #ccc;
-            padding: 4px 0;
-            border-radius: 20px;
-            font-size: clamp(10px, 1.8vw, 13px);
-            cursor: pointer;
-            transition: all 0.15s;
-            border: 1px solid transparent;
-            touch-action: manipulation;
-            min-height: 30px;
-        }
-        #panel .toggle-group button.active {
-            background: #4a9eff;
-            color: #fff;
-            border-color: #4a9eff;
-        }
-        #panel .toggle-group button.danger {
-            background: rgba(255, 70, 70, 0.2);
-        }
-        #panel .toggle-group button.danger.active {
-            background: #ff4444;
-            color: #fff;
-        }
-        #topbar {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            right: 8px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            z-index: 25;
-            pointer-events: none;
-        }
-        #topbar>* {
-            pointer-events: auto;
-            background: rgba(10, 10, 20, 0.7);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 30px;
-            padding: 4px 12px;
-            font-size: clamp(10px, 2vw, 14px);
-            color: #ccc;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            white-space: nowrap;
-            touch-action: manipulation;
-            min-height: 32px;
-            transition: all 0.15s;
-        }
-        #topbar button {
-            background: rgba(255, 255, 255, 0.06);
-            border: none;
-            color: #ccc;
-            padding: 4px 12px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-size: clamp(10px, 2vw, 14px);
-            touch-action: manipulation;
-            transition: all 0.15s;
-            min-height: 32px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        #topbar button:active {
-            transform: scale(0.94);
-            background: rgba(255, 255, 255, 0.15);
-        }
-        #topbar .sep {
-            width: 1px;
-            height: 20px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-        #panel-toggle {
-            background: rgba(74, 158, 255, 0.25) !important;
-            border: 1px solid #4a9eff !important;
-            color: #4a9eff !important;
-            font-weight: 600;
-            padding: 4px 16px !important;
-        }
-        #panel-toggle:active {
-            background: rgba(74, 158, 255, 0.4) !important;
-        }
-        /* На ПК скрываем кнопку меню */
-        @media (min-width: 768px) {
-            #panel-toggle {
-                display: none !important;
-            }
-        }
-        @media (max-width: 767px) {
-            #panel-toggle {
-                display: flex !important;
-            }
-        }
-        #status {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(6px);
-            padding: 4px 16px;
-            border-radius: 30px;
-            font-size: clamp(10px, 2vw, 14px);
-            color: #ccc;
-            z-index: 15;
-            pointer-events: none;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            white-space: nowrap;
-            max-width: 80vw;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        #hint {
-            position: absolute;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.4);
-            padding: 3px 14px;
-            border-radius: 20px;
-            font-size: clamp(9px, 1.8vw, 13px);
-            color: #999;
-            z-index: 15;
-            pointer-events: none;
-            white-space: nowrap;
-            max-width: 80vw;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: rgba(255, 255, 255, 0.06);
-            font-size: clamp(24px, 6vw, 48px);
-            pointer-events: none;
-            z-index: 5;
-            font-weight: 100;
-        }
-        #modal-overlay,
-        #sound-modal,
-        #func-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            z-index: 100;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
-        }
-        #modal-box,
-        #sound-modal>div,
-        #func-box {
-            background: #2a2a3a;
-            border-radius: 20px;
-            padding: 20px 16px;
-            width: 100%;
-            max-width: 420px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        #modal-box h3,
-        #sound-modal h3,
-        #func-box h3 {
-            font-size: clamp(16px, 4vw, 22px);
-            color: #fff;
-            margin-bottom: 12px;
-        }
-        #modal-box label,
-        #sound-modal label,
-        #func-box label {
-            display: block;
-            font-size: clamp(12px, 2.5vw, 15px);
-            color: #aaa;
-            margin: 10px 0 4px;
-        }
-        #modal-box input[type=text],
-        #modal-box select,
-        #func-box select {
-            width: 100%;
-            padding: 10px 12px;
-            background: #1a1a2e;
-            border: 1px solid #444;
-            border-radius: 12px;
-            color: #fff;
-            font-size: clamp(14px, 3vw, 17px);
-            touch-action: manipulation;
-        }
-        #modal-box .file-drop {
-            width: 100%;
-            padding: 20px;
-            border: 2px dashed #555;
-            border-radius: 12px;
-            text-align: center;
-            color: #aaa;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-top: 6px;
-            touch-action: manipulation;
-            min-height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        #modal-box .file-drop:active {
-            border-color: #4a9eff;
-            background: rgba(74, 158, 255, 0.05);
-        }
-        #modal-box .file-drop input {
-            display: none;
-        }
-        #modal-box .buttons,
-        #sound-modal .buttons,
-        #func-box .buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 16px;
-            justify-content: flex-end;
-            flex-wrap: wrap;
-        }
-        #modal-box .buttons button,
-        #sound-modal .buttons button,
-        #func-box .buttons button {
-            padding: 10px 18px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: clamp(14px, 3vw, 17px);
-            transition: 0.15s;
-            touch-action: manipulation;
-            min-height: 44px;
-            flex: 1 1 auto;
-        }
-        #modal-box .buttons button:active,
-        #sound-modal .buttons button:active,
-        #func-box .buttons button:active {
-            transform: scale(0.94);
-        }
-        #modal-box .buttons .cancel,
-        #sound-modal .buttons .cancel,
-        #func-box .buttons .cancel {
-            background: rgba(255, 255, 255, 0.1);
-            color: #ccc;
-        }
-        #modal-box .buttons .add,
-        #sound-modal .buttons .add,
-        #func-box .buttons .apply {
-            background: #4a9eff;
-            color: #fff;
-        }
-        #modal-box .preview {
-            margin-top: 10px;
-            text-align: center;
-        }
-        #modal-box .preview img {
-            max-width: 100px;
-            max-height: 100px;
-            border-radius: 12px;
-            border: 1px solid #444;
-        }
-        #touch-joystick {
-            position: absolute;
-            bottom: 80px;
-            left: 20px;
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.08);
-            border: 2px solid rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            z-index: 20;
-            display: none;
-            touch-action: none;
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
-        }
-        #touch-joystick .stick {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, #4a9eff, #1a5a9e);
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
-            pointer-events: none;
-            transition: box-shadow 0.2s;
-        }
-        #touch-joystick .stick.active {
-            box-shadow: 0 0 40px rgba(74, 158, 255, 0.6);
-        }
-        #action-btn {
-            position: absolute;
-            bottom: 80px;
-            right: 20px;
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: rgba(255, 200, 50, 0.2);
-            border: 2px solid #ffaa00;
-            color: #ffaa00;
-            font-size: clamp(18px, 4vw, 28px);
-            z-index: 20;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            touch-action: manipulation;
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            box-shadow: 0 0 30px rgba(255, 170, 0, 0.2);
-            font-weight: 700;
-            transition: all 0.15s;
-            user-select: none;
-        }
-        #action-btn:active {
-            transform: scale(0.88);
-            background: rgba(255, 200, 50, 0.4);
-        }
-        @media (orientation:landscape) {
-            #touch-joystick {
-                width: 100px;
-                height: 100px;
-                bottom: 30px;
-                left: 20px;
-            }
-            #action-btn {
-                width: 60px;
-                height: 60px;
-                bottom: 30px;
-                right: 20px;
-                font-size: 20px;
-            }
-        }
-        @media (orientation:portrait) {
-            #touch-joystick {
-                width: 130px;
-                height: 130px;
-                bottom: 100px;
-                left: 15px;
-            }
-            #action-btn {
-                width: 76px;
-                height: 76px;
-                bottom: 100px;
-                right: 15px;
-                font-size: 30px;
-            }
-        }
-        @media (max-width:480px) {
-            #topbar>* {
-                font-size: 9px;
-                padding: 2px 8px;
-                min-height: 26px;
-            }
-            #topbar button {
-                font-size: 9px;
-                padding: 2px 8px;
-                min-height: 26px;
-            }
-            #panel {
-                width: 85vw;
-                padding: 8px 6px;
-            }
-            #panel .category {
-                padding: 4px 6px;
-            }
-            #panel .category .items button {
-                font-size: 9px;
-                padding: 2px 8px;
-                min-height: 26px;
-            }
-            #status {
-                font-size: 9px;
-                bottom: 6px;
-                padding: 2px 12px;
-            }
-            #hint {
-                font-size: 8px;
-                bottom: 34px;
-            }
-            #touch-joystick {
-                width: 100px;
-                height: 100px;
-                bottom: 70px;
-                left: 10px;
-            }
-            #touch-joystick .stick {
-                width: 40px;
-                height: 40px;
-            }
-            #action-btn {
-                width: 60px;
-                height: 60px;
-                bottom: 70px;
-                right: 10px;
-                font-size: 22px;
-            }
-        }
-        .hidden-input {
-            display: none;
-        }
+        /* ===== СТИЛИ (те же, что в оригинале) ===== */
+        *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-tap-highlight-color:transparent}
+        html,body{width:100%;height:100%;overflow:hidden;background:#0a0a1a;font-family:'Segoe UI',system-ui,sans-serif;touch-action:none}
+        #loading-screen-editor{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#0a0a1a,#1a1a2e,#0a0a1a);z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;text-align:center;padding:20px;transition:opacity 0.8s}
+        #loading-screen-editor .logo{font-size:clamp(32px,10vw,64px);font-weight:700;background:linear-gradient(45deg,#4a9eff,#6c5ce7,#ff6b6b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:fadeScale 1.5s ease-out}
+        #loading-screen-editor .sub{font-size:clamp(14px,4vw,24px);color:#aaa;margin-top:6px;opacity:0;animation:fadeUp 1.5s ease-out 0.4s forwards}
+        #loading-screen-editor .version{font-size:clamp(11px,2.5vw,16px);color:#888;margin-top:10px;opacity:0;animation:fadeUp 1s ease-out 1s forwards}
+        #loading-screen-editor .tip{font-size:clamp(14px,3.5vw,20px);max-width:500px;margin-top:30px;color:#ccc;padding:0 16px;opacity:0;animation:fadeUp 1s ease-out 1.6s forwards}
+        #loading-screen-editor .bar{width:min(60%,200px);height:4px;background:#333;border-radius:4px;overflow:hidden;margin-top:24px;opacity:0;animation:fadeUp 1s ease-out 2s forwards}
+        #loading-screen-editor .bar div{width:0%;height:100%;background:#4a9eff;transition:width 0.4s}
+        @keyframes fadeScale{0%{opacity:0;transform:scale(0.8)}100%{opacity:1;transform:scale(1)}}
+        @keyframes fadeUp{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
+        #container{display:flex;width:100vw;height:100vh;flex-direction:row;position:relative}
+        #canvas-wrap{flex:1;position:relative;touch-action:none}
+        #canvas-wrap canvas{display:block;width:100%;height:100%;touch-action:none}
+        #panel{position:absolute;right:0;top:0;bottom:0;width:min(300px,75vw);background:rgba(16,16,32,0.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-left:1px solid rgba(255,255,255,0.08);padding:12px 10px;overflow-y:auto;z-index:30;transition:transform 0.3s cubic-bezier(0.2,0.9,0.3,1);box-shadow:-8px 0 30px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:6px}
+        @media(min-width:768px){#panel{transform:translateX(0)}}
+        @media(max-width:767px){#panel{transform:translateX(100%)}#panel.open{transform:translateX(0)}}
+        #panel::-webkit-scrollbar{width:3px}#panel::-webkit-scrollbar-thumb{background:#4a9eff;border-radius:10px}
+        #panel h2{font-size:clamp(14px,2.5vw,20px);font-weight:500;color:#aaa;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;margin-bottom:4px}
+        #panel .category{background:rgba(255,255,255,0.03);border-radius:10px;padding:6px 8px}
+        #panel .category .title{font-size:clamp(12px,2vw,15px);font-weight:500;color:#ccc;margin-bottom:3px;display:flex;align-items:center;gap:4px}
+        #panel .category .items{display:flex;flex-wrap:wrap;gap:3px}
+        #panel .category .items button{background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 10px;border-radius:20px;font-size:clamp(10px,1.8vw,13px);cursor:pointer;transition:all 0.15s;white-space:nowrap;border:1px solid transparent;touch-action:manipulation;min-height:32px}
+        #panel .category .items button:active{transform:scale(0.94)}
+        #panel .category .items button.active{background:#4a9eff;color:#fff;border-color:#4a9eff}
+        #panel .category .items button.danger{background:rgba(255,70,70,0.2)}
+        #panel .category .items button.danger.active{background:#ff4444;color:#fff}
+        #panel .slider-group{display:flex;flex-direction:column;gap:2px;margin-top:2px}
+        #panel .slider-group label{font-size:clamp(10px,1.8vw,13px);color:#aaa;display:flex;justify-content:space-between}
+        #panel .slider-group input[type=range]{width:100%;accent-color:#4a9eff;background:#333;height:4px;border-radius:4px;touch-action:manipulation}
+        #panel .toggle-group{display:flex;gap:4px;flex-wrap:wrap}
+        #panel .toggle-group button{flex:1;background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 0;border-radius:20px;font-size:clamp(10px,1.8vw,13px);cursor:pointer;transition:all 0.15s;border:1px solid transparent;touch-action:manipulation;min-height:30px}
+        #panel .toggle-group button.active{background:#4a9eff;color:#fff;border-color:#4a9eff}
+        #panel .toggle-group button.danger{background:rgba(255,70,70,0.2)}
+        #panel .toggle-group button.danger.active{background:#ff4444;color:#fff}
+        #topbar{position:absolute;top:8px;left:8px;right:8px;display:flex;flex-wrap:wrap;gap:4px;z-index:25;pointer-events:none}
+        #topbar>*{pointer-events:auto;background:rgba(10,10,20,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.06);border-radius:30px;padding:4px 12px;font-size:clamp(10px,2vw,14px);color:#ccc;display:flex;align-items:center;gap:4px;white-space:nowrap;touch-action:manipulation;min-height:32px;transition:all 0.15s}
+        #topbar button{background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 12px;border-radius:30px;cursor:pointer;font-size:clamp(10px,2vw,14px);touch-action:manipulation;transition:all 0.15s;min-height:32px;display:inline-flex;align-items:center;gap:4px}
+        #topbar button:active{transform:scale(0.94);background:rgba(255,255,255,0.15)}
+        #topbar .sep{width:1px;height:20px;background:rgba(255,255,255,0.1)}
+        #panel-toggle{background:rgba(74,158,255,0.25)!important;border:1px solid #4a9eff!important;color:#4a9eff!important;font-weight:600;padding:4px 16px!important}
+        #panel-toggle:active{background:rgba(74,158,255,0.4)!important}
+        @media(min-width:768px){#panel-toggle{display:none!important}}
+        @media(max-width:767px){#panel-toggle{display:flex!important}}
+        #status{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);padding:4px 16px;border-radius:30px;font-size:clamp(10px,2vw,14px);color:#ccc;z-index:15;pointer-events:none;border:1px solid rgba(255,255,255,0.05);white-space:nowrap;max-width:80vw;overflow:hidden;text-overflow:ellipsis}
+        #hint{position:absolute;bottom:50px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.4);padding:3px 14px;border-radius:20px;font-size:clamp(9px,1.8vw,13px);color:#999;z-index:15;pointer-events:none;white-space:nowrap;max-width:80vw;overflow:hidden;text-overflow:ellipsis}
+        .crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.06);font-size:clamp(24px,6vw,48px);pointer-events:none;z-index:5;font-weight:100}
+        #modal-overlay,#sound-modal,#func-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:100;display:none;justify-content:center;align-items:center;padding:16px}
+        #modal-box,#sound-modal>div,#func-box{background:#2a2a3a;border-radius:20px;padding:20px 16px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.9);border:1px solid rgba(255,255,255,0.06);max-height:90vh;overflow-y:auto}
+        #modal-box h3,#sound-modal h3,#func-box h3{font-size:clamp(16px,4vw,22px);color:#fff;margin-bottom:12px}
+        #modal-box label,#sound-modal label,#func-box label{display:block;font-size:clamp(12px,2.5vw,15px);color:#aaa;margin:10px 0 4px}
+        #modal-box input[type=text],#modal-box select,#func-box select{width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #444;border-radius:12px;color:#fff;font-size:clamp(14px,3vw,17px);touch-action:manipulation}
+        #modal-box .file-drop{width:100%;padding:20px;border:2px dashed #555;border-radius:12px;text-align:center;color:#aaa;cursor:pointer;transition:0.2s;margin-top:6px;touch-action:manipulation;min-height:80px;display:flex;align-items:center;justify-content:center}
+        #modal-box .file-drop:active{border-color:#4a9eff;background:rgba(74,158,255,0.05)}
+        #modal-box .file-drop input{display:none}
+        #modal-box .buttons,#sound-modal .buttons,#func-box .buttons{display:flex;gap:10px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap}
+        #modal-box .buttons button,#sound-modal .buttons button,#func-box .buttons button{padding:10px 18px;border:none;border-radius:12px;cursor:pointer;font-size:clamp(14px,3vw,17px);transition:0.15s;touch-action:manipulation;min-height:44px;flex:1 1 auto}
+        #modal-box .buttons button:active,#sound-modal .buttons button:active,#func-box .buttons button:active{transform:scale(0.94)}
+        #modal-box .buttons .cancel,#sound-modal .buttons .cancel,#func-box .buttons .cancel{background:rgba(255,255,255,0.1);color:#ccc}
+        #modal-box .buttons .add,#sound-modal .buttons .add,#func-box .buttons .apply{background:#4a9eff;color:#fff}
+        #modal-box .preview{margin-top:10px;text-align:center}
+        #modal-box .preview img{max-width:100px;max-height:100px;border-radius:12px;border:1px solid #444}
+        #touch-joystick{position:absolute;bottom:80px;left:20px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.15);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:20;display:none;touch-action:none;box-shadow:0 0 40px rgba(0,0,0,0.4)}
+        #touch-joystick .stick{width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#4a9eff,#1a5a9e);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 20px rgba(74,158,255,0.3);pointer-events:none;transition:box-shadow 0.2s}
+        #touch-joystick .stick.active{box-shadow:0 0 40px rgba(74,158,255,0.6)}
+        #action-btn{position:absolute;bottom:80px;right:20px;width:70px;height:70px;border-radius:50%;background:rgba(255,200,50,0.2);border:2px solid #ffaa00;color:#ffaa00;font-size:clamp(18px,4vw,28px);z-index:20;display:none;align-items:center;justify-content:center;touch-action:manipulation;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 0 30px rgba(255,170,0,0.2);font-weight:700;transition:all 0.15s;user-select:none}
+        #action-btn:active{transform:scale(0.88);background:rgba(255,200,50,0.4)}
+        @media(orientation:landscape){#touch-joystick{width:100px;height:100px;bottom:30px;left:20px}#action-btn{width:60px;height:60px;bottom:30px;right:20px;font-size:20px}}
+        @media(orientation:portrait){#touch-joystick{width:130px;height:130px;bottom:100px;left:15px}#action-btn{width:76px;height:76px;bottom:100px;right:15px;font-size:30px}}
+        @media(max-width:480px){#topbar>*{font-size:9px;padding:2px 8px;min-height:26px}#topbar button{font-size:9px;padding:2px 8px;min-height:26px}#panel{width:85vw;padding:8px 6px}#panel .category{padding:4px 6px}#panel .category .items button{font-size:9px;padding:2px 8px;min-height:26px}#status{font-size:9px;bottom:6px;padding:2px 12px}#hint{font-size:8px;bottom:34px}#touch-joystick{width:100px;height:100px;bottom:70px;left:10px}#touch-joystick .stick{width:40px;height:40px}#action-btn{width:60px;height:60px;bottom:70px;right:10px;font-size:22px}}
+        .hidden-input{display:none}
+        /* Дополнительно для треугольника */
+        #triangle-angle-group{display:none;margin-top:4px}
+        #triangle-angle-group label{font-size:clamp(10px,1.8vw,13px);color:#aaa;display:flex;justify-content:space-between}
+        #triangle-angle-group input[type=range]{width:100%;accent-color:#4a9eff;background:#333;height:4px;border-radius:4px}
     </style>
 </head>
 <body>
 
     <!-- ЗАГРУЗОЧНЫЙ ЭКРАН -->
     <div id="loading-screen-editor">
-        <div class="logo">AWANGARD-full</div>
-        <div class="sub">cross-platform editor</div>
-        <div class="version"><span>BETA v10.0</span></div>
-        <p class="tip" id="tip-text-editor">Загрузка...</p>
+        <div class="logo">AWANGARD-engine</div>
+        <div class="sub">awangard team present</div>
+        <div class="version"><span>BETA v8.1</span></div>
+        <p class="tip" id="tip-text-editor">Загрузка текстур...</p>
         <div class="bar"><div id="loading-bar-editor"></div></div>
     </div>
 
@@ -682,15 +100,15 @@
             <h3>Добавить текстуру</h3>
             <label>Название</label>
             <input type="text" id="tex-name" placeholder="Моя текстура">
-            <label>Тип</label>
+            <label>Тип объекта</label>
             <select id="tex-type">
                 <option value="wall">Стена</option>
-                <option value="object">Предмет</option>
-                <option value="brush">Кисть</option>
+                <option value="object">Предмет (спрайт)</option>
+                <option value="brush">Кисть (рисование)</option>
             </select>
-            <label>Изображение</label>
+            <label>Изображение (PNG, JPG)</label>
             <div class="file-drop" id="file-drop">
-                <span>Перетащите файл или кликните</span>
+                <span>Перетащите файл или кликните для выбора</span>
                 <input type="file" accept="image/png,image/jpeg" id="file-input">
             </div>
             <div class="preview" id="preview-container" style="display:none;">
@@ -706,7 +124,7 @@
     <div id="sound-modal">
         <div>
             <h3>Настройки звука</h3>
-            <label>Аудиофайл</label>
+            <label>Аудиофайл (MP3, WAV)</label>
             <input type="file" accept="audio/*" id="sound-file-input">
             <label>Громкость</label>
             <input type="range" id="sound-volume" min="0" max="1" step="0.01" value="0.8">
@@ -722,11 +140,11 @@
     <div id="func-modal">
         <div id="func-box">
             <h3>Функции предмета</h3>
-            <label>Действие</label>
+            <label>Выберите действие</label>
             <select id="func-select">
                 <option value="raise">Поднять на 1 м</option>
                 <option value="lower">Опустить на 1 м</option>
-                <option value="move">Переместить</option>
+                <option value="move">Переместить в случайную точку</option>
                 <option value="rotate">Повернуть на 45°</option>
                 <option value="scale_up">Увеличить на 20%</option>
                 <option value="scale_down">Уменьшить на 20%</option>
@@ -743,16 +161,19 @@
         <div id="canvas-wrap">
             <div class="crosshair">+</div>
             <div id="topbar">
-                <span style="color:#aaa;background:rgba(10,10,20,0.5);backdrop-filter:blur(4px);padding:4px 12px;border-radius:30px;border:1px solid rgba(255,255,255,0.05);">📁</span>
-                <button id="save-json">💾</button>
-                <button id="load-json-btn">📂</button>
-                <button id="export-html">⬇️</button>
-                <button id="add-texture-btn">🖼️</button>
-                <button id="clear-all" style="color:#ff6b6b;">✖</button>
+                <span style="color:#aaa;background:rgba(10,10,20,0.5);backdrop-filter:blur(4px);padding:4px 12px;border-radius:30px;border:1px solid rgba(255,255,255,0.05);">📁 Проект</span>
+                <button id="save-json">💾 Сохранить JSON</button>
+                <button id="load-json-btn">📂 Загрузить JSON</button>
+                <button id="export-html">⬇️ Экспорт HTML</button>
+                <button id="import-html-btn">📂 Импорт HTML</button>
+                <button id="add-texture-btn">🖼️ Добавить текстуру</button>
+                <button id="add-brush-btn">🖌️ Загрузить кисть</button>
+                <div class="sep"></div>
+                <button id="clear-all" style="color:#ff6b6b;">❌ Очистить</button>
                 <button id="panel-toggle" style="margin-left:auto;">☰ Меню</button>
             </div>
-            <div id="status">Готов</div>
-            <div id="hint">Выберите инструмент</div>
+            <div id="status">Нажмите Escape для отмены</div>
+            <div id="hint">Выберите инструмент справа</div>
             <div id="touch-joystick">
                 <div class="stick" id="joystick-stick"></div>
             </div>
@@ -761,7 +182,7 @@
 
         <div id="panel">
             <h2>🛠 Инструменты</h2>
-            <!-- Рельеф -->
+
             <div class="category">
                 <div class="title">⛰️ Рельеф</div>
                 <div class="toggle-group" id="relief-mode">
@@ -775,23 +196,21 @@
                     <label>Сила <span id="strength-label">0.6</span></label>
                     <input type="range" id="brush-strength" min="0.1" max="2" step="0.1" value="0.6">
                 </div>
-                <button id="relief-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить</button>
+                <button id="relief-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить рельеф</button>
             </div>
 
-            <!-- Кисть -->
             <div class="category">
-                <div class="title">🖌️ Кисть</div>
+                <div class="title">🖌️ Кисть текстур</div>
                 <div class="items" id="brush-textures"></div>
-                <button id="brush-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить</button>
-                <label style="font-size:clamp(10px,2vw,13px);color:#aaa;display:block;margin-top:4px;">Размер <span id="brush-size-label">0.5</span></label>
-                <input type="range" id="brush-size" min="0.05" max="2" step="0.05" value="0.5" style="width:100%;accent-color:#4a9eff;background:#333;height:4px;border-radius:4px;">
+                <button id="brush-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить кисть</button>
+                <label style="font-size:clamp(10px,2vw,13px);color:#aaa;display:block;margin-top:4px;">Размер: <span id="brush-size-label">0.5</span></label>
+                <input type="range" id="brush-size" min="0.05" max="2" step="0.05" value="0.5" style="width:100%;accent-color:#4a9eff;background:#333;height:4px;border-radius:2px;">
                 <div style="display:flex;gap:4px;margin-top:4px;">
                     <button id="brush-shape-circle" class="active" style="flex:1;background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,2vw,13px);cursor:pointer;touch-action:manipulation;min-height:30px;">Круг</button>
                     <button id="brush-shape-square" style="flex:1;background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,2vw,13px);cursor:pointer;touch-action:manipulation;min-height:30px;">Квадрат</button>
                 </div>
             </div>
 
-            <!-- Предметы -->
             <div class="category">
                 <div class="title">📦 Предметы</div>
                 <div class="items" id="object-items">
@@ -802,69 +221,80 @@
                     <button data-object="birch">🌳 Берёза</button>
                     <button data-object="pine">🌲 Сосна</button>
                     <button data-object="oak">🌳 Дуб</button>
-                    <button data-object="bush1">🌿 Куст1</button>
-                    <button data-object="bush2">🌿 Куст2</button>
-                    <button data-object="bush3">🌿 Куст3</button>
+                    <button data-object="bush1">🌿 Куст 1</button>
+                    <button data-object="bush2">🌿 Куст 2</button>
+                    <button data-object="bush3">🌿 Куст 3</button>
                     <button data-object="glass">🪟 Стекло</button>
-                    <button data-object="rock1">🪨 Кам.м</button>
-                    <button data-object="rock2">🪨 Кам.ср</button>
-                    <button data-object="rock3">🪨 Кам.б</button>
+                    <button data-object="rock1">🪨 Камень мал.</button>
+                    <button data-object="rock2">🪨 Камень сред.</button>
+                    <button data-object="rock3">🪨 Камень бол.</button>
                     <button data-object="table">Стол</button>
                     <button data-object="chair">Стул</button>
                     <button data-object="lamp">Торшер</button>
-                    <button data-object="street_lamp">💡 Фонарь</button>
-                    <button data-object="bulb">💡 Лампа</button>
+                    <button data-object="street_lamp">💡 Фонарный столб</button>
+                    <button data-object="bulb">💡 Лампочка</button>
                     <button data-object="door">🚪 Дверь</button>
                     <button data-object="sound">🔊 Звук</button>
                 </div>
-                <button id="object-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить</button>
+                <button id="object-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить предметы</button>
             </div>
 
-            <!-- Свет -->
             <div class="category">
-                <div class="title">💡 Свет</div>
+                <div class="title">💡 Источники света</div>
+                <div class="items">
+                    <button data-light="point_light" class="active">💡 Точечный</button>
+                </div>
                 <div class="slider-group">
                     <label>Интенсивность <span id="intensity-label">1.0</span></label>
                     <input type="range" id="light-intensity" min="0.1" max="10" step="0.1" value="1.0">
                     <label>Дальность <span id="distance-label">50</span></label>
                     <input type="range" id="light-distance" min="1" max="100" step="0.5" value="50">
+                    <div style="margin-top:4px;">
+                        <button id="set-sun-intensity" style="background:rgba(255,200,50,0.2);border:1px solid #ffaa00;color:#ffaa00;padding:2px 10px;border-radius:12px;font-size:11px;cursor:pointer;">☀️ Солнце (10)</button>
+                        <button id="set-normal-intensity" style="background:rgba(255,255,255,0.05);border:1px solid #666;color:#ccc;padding:2px 10px;border-radius:12px;font-size:11px;cursor:pointer;">🔆 Обычный (1.0)</button>
+                    </div>
                 </div>
-                <button id="light-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить</button>
+                <button id="light-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить свет</button>
             </div>
 
-            <!-- Время суток -->
             <div class="category">
-                <div class="title">🌞 Время</div>
+                <div class="title">🌞 Время суток</div>
                 <div class="slider-group">
                     <label>Часы <span id="time-label">12:00</span></label>
                     <input type="range" id="time-slider" min="0" max="24" step="0.1" value="12">
                 </div>
-                <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;">
+                    <button id="time-auto" style="flex:1;background:rgba(255,200,50,0.2);border:1px solid #ffaa00;color:#ffaa00;padding:4px;border-radius:20px;font-size:clamp(10px,2vw,13px);touch-action:manipulation;min-height:30px;">▶ Авто</button>
                     <button id="time-day" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid #666;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,2vw,13px);touch-action:manipulation;min-height:30px;">☀️ День</button>
                     <button id="time-night" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid #666;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,2vw,13px);touch-action:manipulation;min-height:30px;">🌙 Ночь</button>
-                    <button id="time-auto" style="flex:1;background:rgba(255,200,50,0.2);border:1px solid #ffaa00;color:#ffaa00;padding:4px;border-radius:20px;font-size:clamp(10px,2vw,13px);touch-action:manipulation;min-height:30px;">▶ Авто</button>
                 </div>
             </div>
 
-            <!-- Стены -->
             <div class="category">
                 <div class="title">🧱 Стены</div>
                 <div class="items" id="wall-items">
                     <button data-wall="wood" class="active">Дерево</button>
                     <button data-wall="stone">Камень</button>
-                    <button data-wall="stone2">Камень2</button>
-                    <button data-wall="triangle">△ Треуг.</button>
+                    <button data-wall="stone2">Камень 2</button>
+                    <button data-wall="triangle">△ Треугольная</button>
                 </div>
-                <button id="wall-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить</button>
+                <div id="triangle-angle-group">
+                    <label>Угол при вершине <span id="triangle-angle-label">60°</span></label>
+                    <input type="range" id="triangle-angle" min="10" max="170" step="1" value="60">
+                </div>
+                <button id="wall-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить стены</button>
             </div>
 
-            <!-- Коллизия -->
+            <div id="user-category" class="category" style="display:none;">
+                <div class="title">👤 Пользовательские</div>
+                <div class="items" id="user-items"></div>
+            </div>
+
             <div class="category">
                 <div class="title">⚡ Коллизия</div>
                 <button id="collision-toggle" style="background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Назначить</button>
             </div>
 
-            <!-- Трансформация -->
             <div class="category">
                 <div class="title">🔄 Трансформация</div>
                 <div class="items">
@@ -874,7 +304,6 @@
                 </div>
             </div>
 
-            <!-- Действия -->
             <div class="category">
                 <div class="title">🎯 Действия</div>
                 <div class="items">
@@ -883,11 +312,6 @@
                     <button id="group-btn">📁 Группа</button>
                     <button id="ungroup-btn">📂 Разгр.</button>
                 </div>
-            </div>
-
-            <div id="user-category" class="category" style="display:none;">
-                <div class="title">👤 Пользоват.</div>
-                <div class="items" id="user-items"></div>
             </div>
         </div>
     </div>
@@ -906,23 +330,29 @@
 
     <script type="module">
         // ============================================================
-        // ПОЛНЫЙ КОД РЕДАКТОРА – БЕЗ СОКРАЩЕНИЙ
+        //  ОРИГИНАЛЬНЫЙ КОД РЕДАКТОРА С ЗАГРУЗКОЙ ИЗ ПАПКИ textures/
         // ============================================================
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-        // ----- ЗАГРУЗОЧНЫЙ ЭКРАН (принудительное скрытие через 10 сек) -----
+        // ----- ЗАГРУЗОЧНЫЙ ЭКРАН (скрывается через 10 сек или после загрузки) -----
         const loadingScreen = document.getElementById('loading-screen-editor');
         const bar = document.getElementById('loading-bar-editor');
         const tipText = document.getElementById('tip-text-editor');
-        const tips = ["Загрузка...", "Подготовка сцены", "Создание ландшафта", "Почти готово"];
+        const tips = [
+            "Загрузка текстур...",
+            "Сборка сцены...",
+            "Подготовка инструментов...",
+            "Почти готово!"
+        ];
         let tipIdx = 0;
         const startTime = Date.now();
+        let texturesLoaded = false;
 
         function updateLoading() {
             const elapsed = (Date.now() - startTime) / 1000;
-            const progress = Math.min(1, elapsed / 10);
+            const progress = texturesLoaded ? 1 : Math.min(1, elapsed / 10);
             bar.style.width = (progress * 100) + '%';
             if (progress < 1) {
                 const idx = Math.floor(elapsed / 2.5) % tips.length;
@@ -939,7 +369,7 @@
         // ----- РАЗМЕР КАРТЫ -----
         let MAP_SIZE = 500,
             SEGMENTS = 40;
-        const sz = prompt('Введите размер карты (м):', '500');
+        const sz = prompt('Введите размер карты в метрах (100-10000, рекомендуется 500-2000):', '500');
         if (sz !== null) {
             MAP_SIZE = Math.max(100, Math.min(10000, parseInt(sz) || 500));
             SEGMENTS = Math.max(16, Math.min(80, Math.floor(3000 / MAP_SIZE * 80)));
@@ -951,8 +381,7 @@
         const WALL_HEIGHT_DEFAULT = 2.5,
             WALL_WIDTH_DEFAULT = 0.3,
             SNAP_GRID = 0.5;
-        // Встроенная текстура-заглушка (серый квадрат 64x64)
-        const FALLBACK_TEXTURE_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARzQklUCAgICHwIZAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABlJREFUeJztwTEBAAAAwqD1T20KP6AAAADg1QAB4AAB5AAAAABJRU5ErkJggg==';
+        const FALLBACK_TEXTURE_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARzQklUCAgICHwIZAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABdJREFUOE9j/P//PwM6YGL8TwD5QCwAEPQBDb2y80cAAAAASUVORK5CYII=';
 
         // ----- СОСТОЯНИЕ -----
         let currentMode = 'none';
@@ -975,8 +404,11 @@
         let brushTextures = [];
         let doorObjects = [];
         const textureData = {};
+        const textureNames = ['trawa', 'stena', 'stena2', 'dpol', 'zemla', 'zemla2', 'nebo', 'bereza'];
+        const textureExtensions = { trawa: 'jpg', stena: 'jpg', stena2: 'jpg', dpol: 'jpg', zemla: 'jpg', zemla2: 'jpg',
+            nebo: 'jpg', bereza: 'png' };
 
-        // Кисть
+        // ----- КИСТЬ -----
         let brushTextureLayer = null;
         let brushCanvas = null;
         let brushCtx = null;
@@ -985,17 +417,21 @@
         let brushSize = 0.5;
         let brushShape = 'circle';
 
-        // Звук, свет, время
+        // ----- ЗВУК -----
         let soundFileData = null;
         let soundVolume = 0.8;
         let soundDistance = 10;
+
+        // ----- СВЕТ -----
         let lightIntensity = 1.0;
         let lightDistance = 50;
+
+        // ----- ВРЕМЯ -----
         let currentTime = 12.0;
         let timeAuto = false;
         let timeInterval = null;
 
-        // ----- СЦЕНА, КАМЕРА, РЕНДЕР -----
+        // ----- СЦЕНА -----
         const container = document.getElementById('canvas-wrap');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x6da5c9);
@@ -1013,7 +449,7 @@
         renderer.toneMappingExposure = 1.2;
         container.appendChild(renderer.domElement);
 
-        // Орбит-контрол
+        // ----- КАМЕРА -----
         const orbitControls = new OrbitControls(camera, renderer.domElement);
         orbitControls.enableDamping = true;
         orbitControls.dampingFactor = 0.08;
@@ -1023,13 +459,13 @@
         orbitControls.target.set(0, 0, 0);
         orbitControls.update();
 
-        // Transform Controls
+        // ----- TRANSFORM -----
         const transformControls = new TransformControls(camera, renderer.domElement);
         transformControls.setSize(0.6);
         scene.add(transformControls);
         transformControls.addEventListener('dragging-changed', (e) => { orbitControls.enabled = !e.value; });
 
-        // Освещение
+        // ----- ОСВЕЩЕНИЕ -----
         const ambient = new THREE.AmbientLight(0x404060, 0.5);
         scene.add(ambient);
         const sun = new THREE.DirectionalLight(0xffeedd, 1.8);
@@ -1048,19 +484,42 @@
         fill.position.set(-20, 10, -20);
         scene.add(fill);
 
-        // ----- ТЕКСТУРЫ (встроенные заглушки) -----
-        function createFallbackTexture(color = '#808080') {
-            const canvas = document.createElement('canvas');
-            canvas.width = 64;
-            canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = color;
-            ctx.fillRect(0, 0, 64, 64);
-            // добавим простой узор
-            ctx.strokeStyle = '#666';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(2, 2, 60, 60);
-            return canvas.toDataURL('image/png');
+        // ----- ТЕКСТУРЫ (ЗАГРУЗКА ИЗ ПАПКИ textures/) -----
+        async function loadTextures() {
+            let loaded = 0;
+            const total = textureNames.length;
+            for (const name of textureNames) {
+                const ext = textureExtensions[name] || 'jpg';
+                try {
+                    const resp = await fetch(`textures/${name}.${ext}`);
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    const blob = await resp.blob();
+                    const reader = new FileReader();
+                    await new Promise((resolve) => {
+                        reader.onload = () => {
+                            textureData[name] = reader.result;
+                            loaded++;
+                            // Обновляем прогресс
+                            const p = Math.min(1, loaded / total);
+                            bar.style.width = (p * 100) + '%';
+                            resolve();
+                        };
+                        reader.readAsDataURL(blob);
+                    });
+                } catch (e) {
+                    console.warn(`Не удалось загрузить текстуру ${name}.${ext}`, e);
+                    textureData[name] = null;
+                    loaded++;
+                }
+            }
+            texturesLoaded = true;
+            // Если загрузка завершилась раньше 10 секунд — скрываем экран
+            if (Date.now() - startTime < 10000) {
+                setTimeout(() => {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
+                }, 500);
+            }
         }
 
         function createTextureFromBase64(b64) {
@@ -1074,21 +533,6 @@
             tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
             tex.repeat.set(1, 1);
             return tex;
-        }
-
-        // Предустановленные текстуры (цветные)
-        const texColors = {
-            trawa: '#6da56a',
-            dpol: '#8B5A2B',
-            stena: '#8B8B8B',
-            stena2: '#A0A0A0',
-            zemla: '#5D4A36',
-            zemla2: '#7A5A3A',
-            nebo: '#6da5c9',
-            bereza: '#e8e0d0'
-        };
-        for (const [name, color] of Object.entries(texColors)) {
-            textureData[name] = createFallbackTexture(color);
         }
 
         // ----- ЛАНДШАФТ -----
@@ -1160,7 +604,7 @@
             scene.add(brushTextureLayer);
         }
 
-        // Сетка
+        // ----- СЕТКА -----
         const gridHelper = new THREE.GridHelper(MAP_SIZE, 20, 0x88ff88, 0x44aa44);
         gridHelper.position.y = 0.02;
         scene.add(gridHelper);
@@ -1245,7 +689,7 @@
             img.src = brushSelectedTexture;
         }
 
-        // ----- СОЗДАНИЕ ОБЪЕКТОВ (ПОЛНЫЙ НАБОР) -----
+        // ----- СОЗДАНИЕ ОБЪЕКТОВ (полный набор, как в оригинале) -----
         function createObject(type, pos, color = 0xffaa00, size = 0.6) {
             // Пользовательский спрайт
             if (type.startsWith('user_')) {
@@ -1337,7 +781,7 @@
             if (type === 'point_light') {
                 let finalPos = pos.clone();
                 if (finalPos.y < 0.5) { finalPos.y = 2.0;
-                    setStatus('Свет поднят на 2 м'); }
+                    setStatus('Свет поднят на высоту 2 м'); }
                 const intensity = parseFloat(document.getElementById('light-intensity').value) || 1.0;
                 const distance = parseFloat(document.getElementById('light-distance').value) || 50;
                 const color = 0xffeedd;
@@ -1703,7 +1147,7 @@
             if (type === 'cube') mesh = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), mat);
             else if (type === 'sphere') mesh = new THREE.Mesh(new THREE.SphereGeometry(size / 2, 16, 16), mat);
             else if (type === 'cylinder') mesh = new THREE.Mesh(new THREE.CylinderGeometry(size / 2, size / 2, size, 12),
-            mat);
+                mat);
             else if (type === 'table') {
                 const group = new THREE.Group();
                 const top = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.5), new THREE
@@ -2183,7 +1627,7 @@
             return null;
         }
 
-        // ----- ОБРАБОТЧИКИ ДВОЙНОГО КЛИКА (стены и объекты) -----
+        // ----- ОБРАБОТЧИКИ ДВОЙНОГО КЛИКА -----
         renderer.domElement.addEventListener('dblclick', (e) => {
             if (currentMode === 'walls') {
                 if (!isGhostActive) {
@@ -2451,8 +1895,7 @@
             }
         });
 
-        // ----- ПАНЕЛЬ УПРАВЛЕНИЯ (все обработчики) -----
-        // Рельеф
+        // ----- ПАНЕЛЬ УПРАВЛЕНИЯ -----
         document.querySelectorAll('#relief-mode button').forEach(b => {
             b.addEventListener('click', () => {
                 document.querySelectorAll('#relief-mode button').forEach(x => x.classList.remove('active'));
@@ -2468,7 +1911,6 @@
         });
         document.getElementById('relief-activate').addEventListener('click', () => { setMode('terrain'); });
 
-        // Кисть
         document.getElementById('brush-size').addEventListener('input', (e) => {
             brushSize = parseFloat(e.target.value);
             document.getElementById('brush-size-label').textContent = brushSize.toFixed(2);
@@ -2493,7 +1935,6 @@
             document.getElementById('tex-type').value = 'brush';
         });
 
-        // Свет
         document.getElementById('light-intensity').addEventListener('input', (e) => {
             lightIntensity = parseFloat(e.target.value);
             document.getElementById('intensity-label').textContent = lightIntensity.toFixed(1);
@@ -2502,10 +1943,19 @@
             lightDistance = parseFloat(e.target.value);
             document.getElementById('distance-label').textContent = lightDistance.toFixed(1);
         });
-        document.getElementById('light-activate').addEventListener('click', () => { currentObjectType = 'point_light';
-            setMode('objects'); });
+        document.getElementById('set-sun-intensity').addEventListener('click', () => {
+            document.getElementById('light-intensity').value = 10;
+            lightIntensity = 10;
+            document.getElementById('intensity-label').textContent = '10.0';
+            setStatus('Интенсивность установлена как у солнца (10.0)');
+        });
+        document.getElementById('set-normal-intensity').addEventListener('click', () => {
+            document.getElementById('light-intensity').value = 1.0;
+            lightIntensity = 1.0;
+            document.getElementById('intensity-label').textContent = '1.0';
+            setStatus('Интенсивность установлена на 1.0');
+        });
 
-        // Стены
         document.querySelectorAll('#wall-items button').forEach(b => {
             b.addEventListener('click', () => {
                 document.querySelectorAll('#wall-items button').forEach(x => x.classList.remove('active'));
@@ -2518,9 +1968,11 @@
                 }
             });
         });
-        document.getElementById('wall-activate').addEventListener('click', () => { setMode('walls'); });
+        document.getElementById('triangle-angle').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            document.getElementById('triangle-angle-label').textContent = val + '°';
+        });
 
-        // Предметы
         document.querySelectorAll('#object-items button').forEach(b => {
             b.addEventListener('click', () => {
                 document.querySelectorAll('#object-items button').forEach(x => x.classList.remove('active'));
@@ -2529,12 +1981,13 @@
             });
         });
         document.getElementById('object-activate').addEventListener('click', () => { setMode('objects'); });
+        document.getElementById('light-activate').addEventListener('click', () => { currentObjectType = 'point_light';
+            setMode('objects'); });
+        document.getElementById('wall-activate').addEventListener('click', () => { setMode('walls'); });
 
-        // Коллизия
         document.getElementById('collision-toggle').addEventListener('click', () => { setMode('collision');
             document.getElementById('collision-toggle').classList.toggle('active'); });
 
-        // Трансформация
         document.getElementById('trans-translate').addEventListener('click', () => {
             currentTransformMode = 'translate';
             setTransformMode('translate');
@@ -2556,7 +2009,6 @@
 
         function setTransformMode(mode) { transformControls.setMode(mode); }
 
-        // Действия
         document.getElementById('select-mode').addEventListener('click', () => {
             setMode('select');
             document.querySelectorAll('#panel .items button').forEach(b => b.classList.remove('active'));
@@ -2827,7 +2279,7 @@
             let brushImageData = null;
             if (brushCanvas) { brushImageData = brushCanvas.toDataURL('image/png'); }
             const data = {
-                version: '10.0',
+                version: '8.1',
                 mapSize: MAP_SIZE,
                 segments: SEGMENTS,
                 userTextures: userTextures,
@@ -3768,7 +3220,7 @@
                 setStatus('Всё очищено'); }
         });
 
-        // ----- МОБИЛЬНЫЙ ДЖОЙСТИК В РЕДАКТОРЕ (для камеры) -----
+        // ----- МОБИЛЬНЫЙ ДЖОЙСТИК В РЕДАКТОРЕ -----
         const joystickEl = document.getElementById('touch-joystick');
         const stickEl = document.getElementById('joystick-stick');
         let joyActive = false,
@@ -3892,6 +3344,8 @@
         });
 
         // ----- ИНИЦИАЛИЗАЦИЯ -----
+        // Загружаем текстуры, затем инициализируем сцену
+        await loadTextures();
         initTerrain();
         setMode('none');
 
@@ -3919,7 +3373,7 @@
         createWall(-1, 2, -1, -1, 2.5, 0.3, 'wood');
         createObject('door', new THREE.Vector3(0, 0, 1.5));
 
-        setStatus('Редактор загружен. ПК — панель открыта, мобила — скрыта.');
+        setStatus('Редактор загружен. Текстуры из папки textures/');
 
         // ----- АНИМАЦИЯ -----
         function animateEditor() {
@@ -3949,7 +3403,7 @@
             }
         });
 
-        console.log('SWILL Full Editor загружен (без сокращений)');
+        console.log('AWANGARD-engine загружен. Текстуры из папки textures/');
     </script>
 </body>
 </html>
