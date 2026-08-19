@@ -1,114 +1,757 @@
-=<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AWANGARD-engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AWANGARD-engine Mobile</title>
     <style>
-        /* ===== СТИЛИ (те же, что в оригинале) ===== */
-        *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-tap-highlight-color:transparent}
-        html,body{width:100%;height:100%;overflow:hidden;background:#0a0a1a;font-family:'Segoe UI',system-ui,sans-serif;touch-action:none}
-        #loading-screen-editor{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#0a0a1a,#1a1a2e,#0a0a1a);z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;text-align:center;padding:20px;transition:opacity 0.8s}
-        #loading-screen-editor .logo{font-size:clamp(32px,10vw,64px);font-weight:700;background:linear-gradient(45deg,#4a9eff,#6c5ce7,#ff6b6b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:fadeScale 1.5s ease-out}
-        #loading-screen-editor .sub{font-size:clamp(14px,4vw,24px);color:#aaa;margin-top:6px;opacity:0;animation:fadeUp 1.5s ease-out 0.4s forwards}
-        #loading-screen-editor .version{font-size:clamp(11px,2.5vw,16px);color:#888;margin-top:10px;opacity:0;animation:fadeUp 1s ease-out 1s forwards}
-        #loading-screen-editor .tip{font-size:clamp(14px,3.5vw,20px);max-width:500px;margin-top:30px;color:#ccc;padding:0 16px;opacity:0;animation:fadeUp 1s ease-out 1.6s forwards}
-        #loading-screen-editor .bar{width:min(60%,200px);height:4px;background:#333;border-radius:4px;overflow:hidden;margin-top:24px;opacity:0;animation:fadeUp 1s ease-out 2s forwards}
-        #loading-screen-editor .bar div{width:0%;height:100%;background:#4a9eff;transition:width 0.4s}
-        @keyframes fadeScale{0%{opacity:0;transform:scale(0.8)}100%{opacity:1;transform:scale(1)}}
-        @keyframes fadeUp{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
-        #container{display:flex;width:100vw;height:100vh;flex-direction:row;position:relative}
-        #canvas-wrap{flex:1;position:relative;touch-action:none}
-        #canvas-wrap canvas{display:block;width:100%;height:100%;touch-action:none}
-        #panel{position:absolute;right:0;top:0;bottom:0;width:min(300px,75vw);background:rgba(16,16,32,0.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-left:1px solid rgba(255,255,255,0.08);padding:12px 10px;overflow-y:auto;z-index:30;transition:transform 0.3s cubic-bezier(0.2,0.9,0.3,1);box-shadow:-8px 0 30px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:6px}
-        @media(min-width:768px){#panel{transform:translateX(0)}}
-        @media(max-width:767px){#panel{transform:translateX(100%)}#panel.open{transform:translateX(0)}}
-        #panel::-webkit-scrollbar{width:3px}#panel::-webkit-scrollbar-thumb{background:#4a9eff;border-radius:10px}
-        #panel h2{font-size:clamp(14px,2.5vw,20px);font-weight:500;color:#aaa;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px;margin-bottom:4px}
-        #panel .category{background:rgba(255,255,255,0.03);border-radius:10px;padding:6px 8px}
-        #panel .category .title{font-size:clamp(12px,2vw,15px);font-weight:500;color:#ccc;margin-bottom:3px;display:flex;align-items:center;gap:4px}
-        #panel .category .items{display:flex;flex-wrap:wrap;gap:3px}
-        #panel .category .items button{background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 10px;border-radius:20px;font-size:clamp(10px,1.8vw,13px);cursor:pointer;transition:all 0.15s;white-space:nowrap;border:1px solid transparent;touch-action:manipulation;min-height:32px}
-        #panel .category .items button:active{transform:scale(0.94)}
-        #panel .category .items button.active{background:#4a9eff;color:#fff;border-color:#4a9eff}
-        #panel .category .items button.danger{background:rgba(255,70,70,0.2)}
-        #panel .category .items button.danger.active{background:#ff4444;color:#fff}
-        #panel .slider-group{display:flex;flex-direction:column;gap:2px;margin-top:2px}
-        #panel .slider-group label{font-size:clamp(10px,1.8vw,13px);color:#aaa;display:flex;justify-content:space-between}
-        #panel .slider-group input[type=range]{width:100%;accent-color:#4a9eff;background:#333;height:4px;border-radius:4px;touch-action:manipulation}
-        #panel .toggle-group{display:flex;gap:4px;flex-wrap:wrap}
-        #panel .toggle-group button{flex:1;background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 0;border-radius:20px;font-size:clamp(10px,1.8vw,13px);cursor:pointer;transition:all 0.15s;border:1px solid transparent;touch-action:manipulation;min-height:30px}
-        #panel .toggle-group button.active{background:#4a9eff;color:#fff;border-color:#4a9eff}
-        #panel .toggle-group button.danger{background:rgba(255,70,70,0.2)}
-        #panel .toggle-group button.danger.active{background:#ff4444;color:#fff}
-        #topbar{position:absolute;top:8px;left:8px;right:8px;display:flex;flex-wrap:wrap;gap:4px;z-index:25;pointer-events:none}
-        #topbar>*{pointer-events:auto;background:rgba(10,10,20,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.06);border-radius:30px;padding:4px 12px;font-size:clamp(10px,2vw,14px);color:#ccc;display:flex;align-items:center;gap:4px;white-space:nowrap;touch-action:manipulation;min-height:32px;transition:all 0.15s}
-        #topbar button{background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 12px;border-radius:30px;cursor:pointer;font-size:clamp(10px,2vw,14px);touch-action:manipulation;transition:all 0.15s;min-height:32px;display:inline-flex;align-items:center;gap:4px}
-        #topbar button:active{transform:scale(0.94);background:rgba(255,255,255,0.15)}
-        #topbar .sep{width:1px;height:20px;background:rgba(255,255,255,0.1)}
-        #panel-toggle{background:rgba(74,158,255,0.25)!important;border:1px solid #4a9eff!important;color:#4a9eff!important;font-weight:600;padding:4px 16px!important}
-        #panel-toggle:active{background:rgba(74,158,255,0.4)!important}
-        @media(min-width:768px){#panel-toggle{display:none!important}}
-        @media(max-width:767px){#panel-toggle{display:flex!important}}
-        #status{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);padding:4px 16px;border-radius:30px;font-size:clamp(10px,2vw,14px);color:#ccc;z-index:15;pointer-events:none;border:1px solid rgba(255,255,255,0.05);white-space:nowrap;max-width:80vw;overflow:hidden;text-overflow:ellipsis}
-        #hint{position:absolute;bottom:50px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.4);padding:3px 14px;border-radius:20px;font-size:clamp(9px,1.8vw,13px);color:#999;z-index:15;pointer-events:none;white-space:nowrap;max-width:80vw;overflow:hidden;text-overflow:ellipsis}
-        .crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.06);font-size:clamp(24px,6vw,48px);pointer-events:none;z-index:5;font-weight:100}
-        #modal-overlay,#sound-modal,#func-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:100;display:none;justify-content:center;align-items:center;padding:16px}
-        #modal-box,#sound-modal>div,#func-box{background:#2a2a3a;border-radius:20px;padding:20px 16px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.9);border:1px solid rgba(255,255,255,0.06);max-height:90vh;overflow-y:auto}
-        #modal-box h3,#sound-modal h3,#func-box h3{font-size:clamp(16px,4vw,22px);color:#fff;margin-bottom:12px}
-        #modal-box label,#sound-modal label,#func-box label{display:block;font-size:clamp(12px,2.5vw,15px);color:#aaa;margin:10px 0 4px}
-        #modal-box input[type=text],#modal-box select,#func-box select{width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #444;border-radius:12px;color:#fff;font-size:clamp(14px,3vw,17px);touch-action:manipulation}
-        #modal-box .file-drop{width:100%;padding:20px;border:2px dashed #555;border-radius:12px;text-align:center;color:#aaa;cursor:pointer;transition:0.2s;margin-top:6px;touch-action:manipulation;min-height:80px;display:flex;align-items:center;justify-content:center}
-        #modal-box .file-drop:active{border-color:#4a9eff;background:rgba(74,158,255,0.05)}
-        #modal-box .file-drop input{display:none}
-        #modal-box .buttons,#sound-modal .buttons,#func-box .buttons{display:flex;gap:10px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap}
-        #modal-box .buttons button,#sound-modal .buttons button,#func-box .buttons button{padding:10px 18px;border:none;border-radius:12px;cursor:pointer;font-size:clamp(14px,3vw,17px);transition:0.15s;touch-action:manipulation;min-height:44px;flex:1 1 auto}
-        #modal-box .buttons button:active,#sound-modal .buttons button:active,#func-box .buttons button:active{transform:scale(0.94)}
-        #modal-box .buttons .cancel,#sound-modal .buttons .cancel,#func-box .buttons .cancel{background:rgba(255,255,255,0.1);color:#ccc}
-        #modal-box .buttons .add,#sound-modal .buttons .add,#func-box .buttons .apply{background:#4a9eff;color:#fff}
-        #modal-box .preview{margin-top:10px;text-align:center}
-        #modal-box .preview img{max-width:100px;max-height:100px;border-radius:12px;border:1px solid #444}
-        #touch-joystick{position:absolute;bottom:80px;left:20px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.15);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:20;display:none;touch-action:none;box-shadow:0 0 40px rgba(0,0,0,0.4)}
-        #touch-joystick .stick{width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#4a9eff,#1a5a9e);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 20px rgba(74,158,255,0.3);pointer-events:none;transition:box-shadow 0.2s}
-        #touch-joystick .stick.active{box-shadow:0 0 40px rgba(74,158,255,0.6)}
-        #action-btn{position:absolute;bottom:80px;right:20px;width:70px;height:70px;border-radius:50%;background:rgba(255,200,50,0.2);border:2px solid #ffaa00;color:#ffaa00;font-size:clamp(18px,4vw,28px);z-index:20;display:none;align-items:center;justify-content:center;touch-action:manipulation;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 0 30px rgba(255,170,0,0.2);font-weight:700;transition:all 0.15s;user-select:none}
-        #action-btn:active{transform:scale(0.88);background:rgba(255,200,50,0.4)}
-        @media(orientation:landscape){#touch-joystick{width:100px;height:100px;bottom:30px;left:20px}#action-btn{width:60px;height:60px;bottom:30px;right:20px;font-size:20px}}
-        @media(orientation:portrait){#touch-joystick{width:130px;height:130px;bottom:100px;left:15px}#action-btn{width:76px;height:76px;bottom:100px;right:15px;font-size:30px}}
-        @media(max-width:480px){#topbar>*{font-size:9px;padding:2px 8px;min-height:26px}#topbar button{font-size:9px;padding:2px 8px;min-height:26px}#panel{width:85vw;padding:8px 6px}#panel .category{padding:4px 6px}#panel .category .items button{font-size:9px;padding:2px 8px;min-height:26px}#status{font-size:9px;bottom:6px;padding:2px 12px}#hint{font-size:8px;bottom:34px}#touch-joystick{width:100px;height:100px;bottom:70px;left:10px}#touch-joystick .stick{width:40px;height:40px}#action-btn{width:60px;height:60px;bottom:70px;right:10px;font-size:22px}}
-        .hidden-input{display:none}
-        /* Дополнительно для треугольника */
-        #triangle-angle-group{display:none;margin-top:4px}
-        #triangle-angle-group label{font-size:clamp(10px,1.8vw,13px);color:#aaa;display:flex;justify-content:space-between}
-        #triangle-angle-group input[type=range]{width:100%;accent-color:#4a9eff;background:#333;height:4px;border-radius:4px}
+        /* ===== ГЛОБАЛЬНЫЙ СБРОС ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            touch-action: none;
+        }
+
+        /* ===== ЗАГРУЗОЧНЫЙ ЭКРАН (полноэкранный) ===== */
+        #loading-screen-editor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            transition: opacity 0.8s;
+            overflow: hidden;
+        }
+        #splash-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .splash-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        #splash-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+        #splash-text {
+            color: #fff;
+            font-size: clamp(24px, 8vw, 60px);
+            text-align: center;
+            font-weight: bold;
+            text-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+            display: none;
+            padding: 20px;
+            line-height: 1.3;
+            letter-spacing: 2px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 90%;
+        }
+        /* Бар загрузки (оставлен для прогресса, но скрыт за картинками) */
+        #loading-bar-editor {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            max-width: 300px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            z-index: 10;
+        }
+        #loading-bar-editor div {
+            width: 0%;
+            height: 100%;
+            background: #4a9eff;
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+
+        /* ===== ОСНОВНОЙ КОНТЕЙНЕР ===== */
+        #container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            flex-direction: row;
+            position: relative;
+            background: #0a0a1a;
+        }
+        #canvas-wrap {
+            flex: 1;
+            position: relative;
+            touch-action: none;
+        }
+        #canvas-wrap canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        /* ===== ПАНЕЛЬ (скрыта на мобиле, открывается кнопкой) ===== */
+        #panel {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: min(300px, 75vw);
+            background: rgba(16, 16, 32, 0.94);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 12px 10px;
+            overflow-y: auto;
+            z-index: 30;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+            box-shadow: -8px 0 30px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        #panel.open {
+            transform: translateX(0);
+        }
+        #panel::-webkit-scrollbar {
+            width: 3px;
+        }
+        #panel::-webkit-scrollbar-thumb {
+            background: #4a9eff;
+            border-radius: 10px;
+        }
+        #panel h2 {
+            font-size: clamp(14px, 2.5vw, 20px);
+            font-weight: 500;
+            color: #aaa;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 6px;
+            margin-bottom: 4px;
+        }
+        #panel .category {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 6px 8px;
+        }
+        #panel .category .title {
+            font-size: clamp(12px, 2vw, 15px);
+            font-weight: 500;
+            color: #ccc;
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        #panel .category .items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+        #panel .category .items button {
+            background: rgba(255, 255, 255, 0.06);
+            border: none;
+            color: #ccc;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: clamp(10px, 1.8vw, 13px);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+            border: 1px solid transparent;
+            touch-action: manipulation;
+            min-height: 32px;
+        }
+        #panel .category .items button:active {
+            transform: scale(0.94);
+        }
+        #panel .category .items button.active {
+            background: #4a9eff;
+            color: #fff;
+            border-color: #4a9eff;
+        }
+        #panel .category .items button.danger {
+            background: rgba(255, 70, 70, 0.2);
+        }
+        #panel .category .items button.danger.active {
+            background: #ff4444;
+            color: #fff;
+        }
+        #panel .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: 2px;
+        }
+        #panel .slider-group label {
+            font-size: clamp(10px, 1.8vw, 13px);
+            color: #aaa;
+            display: flex;
+            justify-content: space-between;
+        }
+        #panel .slider-group input[type=range] {
+            width: 100%;
+            accent-color: #4a9eff;
+            background: #333;
+            height: 4px;
+            border-radius: 4px;
+            touch-action: manipulation;
+        }
+        #panel .toggle-group {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        #panel .toggle-group button {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.06);
+            border: none;
+            color: #ccc;
+            padding: 4px 0;
+            border-radius: 20px;
+            font-size: clamp(10px, 1.8vw, 13px);
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 1px solid transparent;
+            touch-action: manipulation;
+            min-height: 30px;
+        }
+        #panel .toggle-group button.active {
+            background: #4a9eff;
+            color: #fff;
+            border-color: #4a9eff;
+        }
+        #panel .toggle-group button.danger {
+            background: rgba(255, 70, 70, 0.2);
+        }
+        #panel .toggle-group button.danger.active {
+            background: #ff4444;
+            color: #fff;
+        }
+        #panel .category .action-btn {
+            background: #4a9eff;
+            border: none;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: clamp(10px, 2vw, 14px);
+            cursor: pointer;
+            touch-action: manipulation;
+            min-height: 32px;
+            width: 100%;
+            margin-top: 4px;
+        }
+        #panel .category .action-btn:active {
+            transform: scale(0.94);
+        }
+
+        /* ===== ТОПБАР (адаптивный) ===== */
+        #topbar {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            z-index: 25;
+            pointer-events: none;
+        }
+        #topbar>* {
+            pointer-events: auto;
+            background: rgba(10, 10, 20, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 30px;
+            padding: 4px 10px;
+            font-size: clamp(9px, 1.8vw, 12px);
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            touch-action: manipulation;
+            min-height: 28px;
+            transition: all 0.15s;
+        }
+        #topbar button {
+            background: rgba(255, 255, 255, 0.06);
+            border: none;
+            color: #ccc;
+            padding: 2px 8px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: clamp(9px, 1.8vw, 12px);
+            touch-action: manipulation;
+            transition: all 0.15s;
+            min-height: 26px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        #topbar button:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        #topbar .sep {
+            width: 1px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        #panel-toggle {
+            background: rgba(74, 158, 255, 0.25) !important;
+            border: 1px solid #4a9eff !important;
+            color: #4a9eff !important;
+            font-weight: 600;
+            padding: 2px 12px !important;
+            margin-left: auto;
+        }
+        #panel-toggle:active {
+            background: rgba(74, 158, 255, 0.4) !important;
+        }
+        /* На ПК панель всегда открыта, кнопка меню скрыта */
+        @media (min-width: 768px) {
+            #panel {
+                transform: translateX(0);
+                position: relative;
+                width: 280px;
+                border-left: 1px solid rgba(255, 255, 255, 0.06);
+            }
+            #panel-toggle {
+                display: none !important;
+            }
+            #topbar {
+                left: 50%;
+                transform: translateX(-50%);
+                width: auto;
+                flex-wrap: nowrap;
+            }
+        }
+        @media (max-width: 767px) {
+            #panel {
+                transform: translateX(100%);
+                position: absolute;
+            }
+            #panel.open {
+                transform: translateX(0);
+            }
+            #panel-toggle {
+                display: flex !important;
+            }
+            #topbar {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+            #topbar>* {
+                font-size: 9px;
+                padding: 2px 6px;
+                min-height: 24px;
+            }
+            #topbar button {
+                font-size: 9px;
+                padding: 2px 6px;
+                min-height: 24px;
+            }
+        }
+
+        /* ===== СТАТУС И ПОДСКАЗКА ===== */
+        #status {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(6px);
+            padding: 4px 16px;
+            border-radius: 30px;
+            font-size: clamp(9px, 2vw, 13px);
+            color: #ccc;
+            z-index: 15;
+            pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            white-space: nowrap;
+            max-width: 80vw;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #hint {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.4);
+            padding: 3px 14px;
+            border-radius: 20px;
+            font-size: clamp(8px, 1.6vw, 12px);
+            color: #999;
+            z-index: 15;
+            pointer-events: none;
+            white-space: nowrap;
+            max-width: 80vw;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.06);
+            font-size: clamp(24px, 6vw, 48px);
+            pointer-events: none;
+            z-index: 5;
+            font-weight: 100;
+        }
+
+        /* ===== МОДАЛКИ ===== */
+        #modal-overlay,
+        #sound-modal,
+        #func-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        #modal-box,
+        #sound-modal>div,
+        #func-box {
+            background: #2a2a3a;
+            border-radius: 20px;
+            padding: 20px 16px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        #modal-box h3,
+        #sound-modal h3,
+        #func-box h3 {
+            font-size: clamp(16px, 4vw, 22px);
+            color: #fff;
+            margin-bottom: 12px;
+        }
+        #modal-box label,
+        #sound-modal label,
+        #func-box label {
+            display: block;
+            font-size: clamp(12px, 2.5vw, 15px);
+            color: #aaa;
+            margin: 10px 0 4px;
+        }
+        #modal-box input[type=text],
+        #modal-box select,
+        #func-box select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #1a1a2e;
+            border: 1px solid #444;
+            border-radius: 12px;
+            color: #fff;
+            font-size: clamp(14px, 3vw, 17px);
+            touch-action: manipulation;
+        }
+        #modal-box .file-drop {
+            width: 100%;
+            padding: 20px;
+            border: 2px dashed #555;
+            border-radius: 12px;
+            text-align: center;
+            color: #aaa;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 6px;
+            touch-action: manipulation;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #modal-box .file-drop:active {
+            border-color: #4a9eff;
+            background: rgba(74, 158, 255, 0.05);
+        }
+        #modal-box .file-drop input {
+            display: none;
+        }
+        #modal-box .buttons,
+        #sound-modal .buttons,
+        #func-box .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+        #modal-box .buttons button,
+        #sound-modal .buttons button,
+        #func-box .buttons button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: clamp(14px, 3vw, 17px);
+            transition: 0.15s;
+            touch-action: manipulation;
+            min-height: 44px;
+            flex: 1 1 auto;
+        }
+        #modal-box .buttons button:active,
+        #sound-modal .buttons button:active,
+        #func-box .buttons button:active {
+            transform: scale(0.94);
+        }
+        #modal-box .buttons .cancel,
+        #sound-modal .buttons .cancel,
+        #func-box .buttons .cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ccc;
+        }
+        #modal-box .buttons .add,
+        #sound-modal .buttons .add,
+        #func-box .buttons .apply {
+            background: #4a9eff;
+            color: #fff;
+        }
+        #modal-box .preview {
+            margin-top: 10px;
+            text-align: center;
+        }
+        #modal-box .preview img {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 12px;
+            border: 1px solid #444;
+        }
+
+        /* ===== ДЖОЙСТИК (только на мобиле) ===== */
+        #touch-joystick {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 20;
+            display: none;
+            touch-action: none;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
+        }
+        #touch-joystick .stick {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #4a9eff, #1a5a9e);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
+            pointer-events: none;
+            transition: box-shadow 0.2s;
+        }
+        #touch-joystick .stick.active {
+            box-shadow: 0 0 40px rgba(74, 158, 255, 0.6);
+        }
+        /* На ПК скрываем джойстик */
+        @media (min-width: 768px) {
+            #touch-joystick {
+                display: none !important;
+            }
+            #action-btn {
+                display: none !important;
+            }
+        }
+        @media (max-width: 767px) {
+            #touch-joystick {
+                display: block;
+                width: 120px;
+                height: 120px;
+                bottom: 30px;
+                left: 15px;
+            }
+            #touch-joystick .stick {
+                width: 45px;
+                height: 45px;
+            }
+        }
+        @media (orientation:portrait) and (max-width: 767px) {
+            #touch-joystick {
+                width: 130px;
+                height: 130px;
+                bottom: 100px;
+                left: 15px;
+            }
+            #touch-joystick .stick {
+                width: 50px;
+                height: 50px;
+            }
+        }
+        @media (orientation:landscape) and (max-width: 767px) {
+            #touch-joystick {
+                width: 100px;
+                height: 100px;
+                bottom: 20px;
+                left: 15px;
+            }
+            #touch-joystick .stick {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        /* ===== КНОПКА F (для мобил) ===== */
+        #action-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 200, 50, 0.2);
+            border: 2px solid #ffaa00;
+            color: #ffaa00;
+            font-size: 24px;
+            z-index: 20;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            box-shadow: 0 0 30px rgba(255, 170, 0, 0.2);
+            font-weight: 700;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        #action-btn:active {
+            transform: scale(0.88);
+            background: rgba(255, 200, 50, 0.4);
+        }
+        @media (max-width: 767px) {
+            #action-btn {
+                display: flex;
+                width: 60px;
+                height: 60px;
+                bottom: 30px;
+                right: 15px;
+                font-size: 22px;
+            }
+        }
+        @media (orientation:portrait) and (max-width: 767px) {
+            #action-btn {
+                width: 70px;
+                height: 70px;
+                bottom: 100px;
+                right: 15px;
+                font-size: 28px;
+            }
+        }
+
+        /* ===== ДОПОЛНИТЕЛЬНО: треугольник ===== */
+        #triangle-angle-group {
+            display: none;
+            margin-top: 4px;
+        }
+        #triangle-angle-group label {
+            font-size: clamp(10px, 1.8vw, 13px);
+            color: #aaa;
+            display: flex;
+            justify-content: space-between;
+        }
+        #triangle-angle-group input[type=range] {
+            width: 100%;
+            accent-color: #4a9eff;
+            background: #333;
+            height: 4px;
+            border-radius: 4px;
+        }
+        .hidden-input {
+            display: none;
+        }
     </style>
 </head>
 <body>
 
-    <!-- ЗАГРУЗОЧНЫЙ ЭКРАН -->
+    <!-- ===== ЗАГРУЗОЧНЫЙ ЭКРАН ===== -->
     <div id="loading-screen-editor">
-        <div class="logo">AWANGARD-engine</div>
-        <div class="sub">awangard team present</div>
-        <div class="version"><span>BETA v8.1</span></div>
-        <p class="tip" id="tip-text-editor">Загрузка текстур...</p>
-        <div class="bar"><div id="loading-bar-editor"></div></div>
+        <div id="splash-container">
+            <!-- Три картинки (должны лежать рядом с index.html) -->
+            <img class="splash-img" id="splash1" src="1.png" alt="splash1">
+            <img class="splash-img" id="splash2" src="2.png" alt="splash2">
+            <img class="splash-img" id="splash3" src="3.png" alt="splash3">
+            <div id="splash-overlay">
+                <div id="splash-text">если у вас серый экран просто подождите</div>
+            </div>
+            <div id="loading-bar-editor"><div id="loading-bar-fill"></div></div>
+        </div>
     </div>
 
-    <!-- МОДАЛКИ -->
+    <!-- ===== МОДАЛКИ ===== -->
     <div id="modal-overlay">
         <div id="modal-box">
             <h3>Добавить текстуру</h3>
             <label>Название</label>
             <input type="text" id="tex-name" placeholder="Моя текстура">
-            <label>Тип объекта</label>
+            <label>Тип</label>
             <select id="tex-type">
                 <option value="wall">Стена</option>
-                <option value="object">Предмет (спрайт)</option>
-                <option value="brush">Кисть (рисование)</option>
+                <option value="object">Предмет</option>
+                <option value="brush">Кисть</option>
             </select>
-            <label>Изображение (PNG, JPG)</label>
+            <label>Изображение</label>
             <div class="file-drop" id="file-drop">
-                <span>Перетащите файл или кликните для выбора</span>
+                <span>Перетащите файл или кликните</span>
                 <input type="file" accept="image/png,image/jpeg" id="file-input">
             </div>
             <div class="preview" id="preview-container" style="display:none;">
@@ -124,7 +767,7 @@
     <div id="sound-modal">
         <div>
             <h3>Настройки звука</h3>
-            <label>Аудиофайл (MP3, WAV)</label>
+            <label>Аудиофайл</label>
             <input type="file" accept="audio/*" id="sound-file-input">
             <label>Громкость</label>
             <input type="range" id="sound-volume" min="0" max="1" step="0.01" value="0.8">
@@ -140,11 +783,11 @@
     <div id="func-modal">
         <div id="func-box">
             <h3>Функции предмета</h3>
-            <label>Выберите действие</label>
+            <label>Действие</label>
             <select id="func-select">
                 <option value="raise">Поднять на 1 м</option>
                 <option value="lower">Опустить на 1 м</option>
-                <option value="move">Переместить в случайную точку</option>
+                <option value="move">Переместить</option>
                 <option value="rotate">Повернуть на 45°</option>
                 <option value="scale_up">Увеличить на 20%</option>
                 <option value="scale_down">Уменьшить на 20%</option>
@@ -156,33 +799,37 @@
         </div>
     </div>
 
-    <!-- ОСНОВНОЙ КОНТЕЙНЕР -->
+    <!-- ===== ОСНОВНОЙ КОНТЕЙНЕР ===== -->
     <div id="container">
         <div id="canvas-wrap">
             <div class="crosshair">+</div>
+
+            <!-- Топбар -->
             <div id="topbar">
-                <span style="color:#aaa;background:rgba(10,10,20,0.5);backdrop-filter:blur(4px);padding:4px 12px;border-radius:30px;border:1px solid rgba(255,255,255,0.05);">📁 Проект</span>
-                <button id="save-json">💾 Сохранить JSON</button>
-                <button id="load-json-btn">📂 Загрузить JSON</button>
-                <button id="export-html">⬇️ Экспорт HTML</button>
-                <button id="import-html-btn">📂 Импорт HTML</button>
-                <button id="add-texture-btn">🖼️ Добавить текстуру</button>
-                <button id="add-brush-btn">🖌️ Загрузить кисть</button>
-                <div class="sep"></div>
-                <button id="clear-all" style="color:#ff6b6b;">❌ Очистить</button>
-                <button id="panel-toggle" style="margin-left:auto;">☰ Меню</button>
+                <span style="color:#aaa;background:rgba(10,10,20,0.5);backdrop-filter:blur(4px);padding:2px 10px;border-radius:30px;border:1px solid rgba(255,255,255,0.05);">📁</span>
+                <button id="save-json">💾</button>
+                <button id="load-json-btn">📂</button>
+                <button id="export-html">⬇️</button>
+                <button id="add-texture-btn">🖼️</button>
+                <button id="clear-all" style="color:#ff6b6b;">✖</button>
+                <button id="panel-toggle">☰ Меню</button>
             </div>
-            <div id="status">Нажмите Escape для отмены</div>
-            <div id="hint">Выберите инструмент справа</div>
+
+            <div id="status">Готов</div>
+            <div id="hint">Выберите инструмент</div>
+
+            <!-- Джойстик (только мобила) -->
             <div id="touch-joystick">
                 <div class="stick" id="joystick-stick"></div>
             </div>
+            <!-- Кнопка F -->
             <div id="action-btn">F</div>
         </div>
 
+        <!-- Панель инструментов -->
         <div id="panel">
             <h2>🛠 Инструменты</h2>
-
+            <!-- Рельеф -->
             <div class="category">
                 <div class="title">⛰️ Рельеф</div>
                 <div class="toggle-group" id="relief-mode">
@@ -196,21 +843,23 @@
                     <label>Сила <span id="strength-label">0.6</span></label>
                     <input type="range" id="brush-strength" min="0.1" max="2" step="0.1" value="0.6">
                 </div>
-                <button id="relief-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить рельеф</button>
+                <button class="action-btn" id="relief-activate">Включить рельеф</button>
             </div>
 
+            <!-- Кисть -->
             <div class="category">
-                <div class="title">🖌️ Кисть текстур</div>
+                <div class="title">🖌️ Кисть</div>
                 <div class="items" id="brush-textures"></div>
-                <button id="brush-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить кисть</button>
-                <label style="font-size:clamp(10px,2vw,13px);color:#aaa;display:block;margin-top:4px;">Размер: <span id="brush-size-label">0.5</span></label>
-                <input type="range" id="brush-size" min="0.05" max="2" step="0.05" value="0.5" style="width:100%;accent-color:#4a9eff;background:#333;height:4px;border-radius:2px;">
+                <button class="action-btn" id="brush-activate">Включить кисть</button>
+                <label style="font-size:clamp(10px,1.8vw,13px);color:#aaa;display:block;margin-top:4px;">Размер <span id="brush-size-label">0.5</span></label>
+                <input type="range" id="brush-size" min="0.05" max="2" step="0.05" value="0.5" style="width:100%;accent-color:#4a9eff;background:#333;height:4px;border-radius:4px;">
                 <div style="display:flex;gap:4px;margin-top:4px;">
-                    <button id="brush-shape-circle" class="active" style="flex:1;background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,2vw,13px);cursor:pointer;touch-action:manipulation;min-height:30px;">Круг</button>
-                    <button id="brush-shape-square" style="flex:1;background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,2vw,13px);cursor:pointer;touch-action:manipulation;min-height:30px;">Квадрат</button>
+                    <button id="brush-shape-circle" class="active" style="flex:1;background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,1.8vw,13px);cursor:pointer;touch-action:manipulation;min-height:30px;">Круг</button>
+                    <button id="brush-shape-square" style="flex:1;background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,1.8vw,13px);cursor:pointer;touch-action:manipulation;min-height:30px;">Квадрат</button>
                 </div>
             </div>
 
+            <!-- Предметы -->
             <div class="category">
                 <div class="title">📦 Предметы</div>
                 <div class="items" id="object-items">
@@ -221,80 +870,73 @@
                     <button data-object="birch">🌳 Берёза</button>
                     <button data-object="pine">🌲 Сосна</button>
                     <button data-object="oak">🌳 Дуб</button>
-                    <button data-object="bush1">🌿 Куст 1</button>
-                    <button data-object="bush2">🌿 Куст 2</button>
-                    <button data-object="bush3">🌿 Куст 3</button>
+                    <button data-object="bush1">🌿 Куст1</button>
+                    <button data-object="bush2">🌿 Куст2</button>
+                    <button data-object="bush3">🌿 Куст3</button>
                     <button data-object="glass">🪟 Стекло</button>
-                    <button data-object="rock1">🪨 Камень мал.</button>
-                    <button data-object="rock2">🪨 Камень сред.</button>
-                    <button data-object="rock3">🪨 Камень бол.</button>
+                    <button data-object="rock1">🪨 Кам.м</button>
+                    <button data-object="rock2">🪨 Кам.ср</button>
+                    <button data-object="rock3">🪨 Кам.б</button>
                     <button data-object="table">Стол</button>
                     <button data-object="chair">Стул</button>
                     <button data-object="lamp">Торшер</button>
-                    <button data-object="street_lamp">💡 Фонарный столб</button>
-                    <button data-object="bulb">💡 Лампочка</button>
+                    <button data-object="street_lamp">💡 Фонарь</button>
+                    <button data-object="bulb">💡 Лампа</button>
                     <button data-object="door">🚪 Дверь</button>
                     <button data-object="sound">🔊 Звук</button>
                 </div>
-                <button id="object-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить предметы</button>
+                <button class="action-btn" id="object-activate">Включить предметы</button>
             </div>
 
+            <!-- Свет -->
             <div class="category">
-                <div class="title">💡 Источники света</div>
-                <div class="items">
-                    <button data-light="point_light" class="active">💡 Точечный</button>
-                </div>
+                <div class="title">💡 Свет</div>
                 <div class="slider-group">
                     <label>Интенсивность <span id="intensity-label">1.0</span></label>
                     <input type="range" id="light-intensity" min="0.1" max="10" step="0.1" value="1.0">
                     <label>Дальность <span id="distance-label">50</span></label>
                     <input type="range" id="light-distance" min="1" max="100" step="0.5" value="50">
-                    <div style="margin-top:4px;">
-                        <button id="set-sun-intensity" style="background:rgba(255,200,50,0.2);border:1px solid #ffaa00;color:#ffaa00;padding:2px 10px;border-radius:12px;font-size:11px;cursor:pointer;">☀️ Солнце (10)</button>
-                        <button id="set-normal-intensity" style="background:rgba(255,255,255,0.05);border:1px solid #666;color:#ccc;padding:2px 10px;border-radius:12px;font-size:11px;cursor:pointer;">🔆 Обычный (1.0)</button>
-                    </div>
                 </div>
-                <button id="light-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить свет</button>
+                <button class="action-btn" id="light-activate">Включить свет</button>
             </div>
 
+            <!-- Время -->
             <div class="category">
-                <div class="title">🌞 Время суток</div>
+                <div class="title">🌞 Время</div>
                 <div class="slider-group">
                     <label>Часы <span id="time-label">12:00</span></label>
                     <input type="range" id="time-slider" min="0" max="24" step="0.1" value="12">
                 </div>
-                <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;">
-                    <button id="time-auto" style="flex:1;background:rgba(255,200,50,0.2);border:1px solid #ffaa00;color:#ffaa00;padding:4px;border-radius:20px;font-size:clamp(10px,2vw,13px);touch-action:manipulation;min-height:30px;">▶ Авто</button>
-                    <button id="time-day" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid #666;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,2vw,13px);touch-action:manipulation;min-height:30px;">☀️ День</button>
-                    <button id="time-night" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid #666;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,2vw,13px);touch-action:manipulation;min-height:30px;">🌙 Ночь</button>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                    <button id="time-day" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid #666;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,1.8vw,13px);touch-action:manipulation;min-height:30px;">☀️ День</button>
+                    <button id="time-night" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid #666;color:#ccc;padding:4px;border-radius:20px;font-size:clamp(10px,1.8vw,13px);touch-action:manipulation;min-height:30px;">🌙 Ночь</button>
+                    <button id="time-auto" style="flex:1;background:rgba(255,200,50,0.2);border:1px solid #ffaa00;color:#ffaa00;padding:4px;border-radius:20px;font-size:clamp(10px,1.8vw,13px);touch-action:manipulation;min-height:30px;">▶ Авто</button>
                 </div>
             </div>
 
+            <!-- Стены -->
             <div class="category">
                 <div class="title">🧱 Стены</div>
                 <div class="items" id="wall-items">
                     <button data-wall="wood" class="active">Дерево</button>
                     <button data-wall="stone">Камень</button>
-                    <button data-wall="stone2">Камень 2</button>
-                    <button data-wall="triangle">△ Треугольная</button>
+                    <button data-wall="stone2">Камень2</button>
+                    <button data-wall="triangle">△ Треуг.</button>
                 </div>
                 <div id="triangle-angle-group">
                     <label>Угол при вершине <span id="triangle-angle-label">60°</span></label>
                     <input type="range" id="triangle-angle" min="10" max="170" step="1" value="60">
                 </div>
-                <button id="wall-activate" style="background:#4a9eff;border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Включить стены</button>
+                <button class="action-btn" id="wall-activate">Включить стены</button>
             </div>
 
-            <div id="user-category" class="category" style="display:none;">
-                <div class="title">👤 Пользовательские</div>
-                <div class="items" id="user-items"></div>
-            </div>
-
+            <!-- Коллизия -->
             <div class="category">
                 <div class="title">⚡ Коллизия</div>
-                <button id="collision-toggle" style="background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 12px;border-radius:20px;font-size:clamp(10px,2vw,14px);cursor:pointer;touch-action:manipulation;min-height:32px;">Назначить</button>
+                <button id="collision-toggle" style="background:rgba(255,255,255,0.06);border:none;color:#ccc;padding:4px 12px;border-radius:20px;font-size:clamp(10px,1.8vw,13px);cursor:pointer;touch-action:manipulation;min-height:32px;">Назначить</button>
             </div>
 
+            <!-- Трансформация -->
             <div class="category">
                 <div class="title">🔄 Трансформация</div>
                 <div class="items">
@@ -304,6 +946,7 @@
                 </div>
             </div>
 
+            <!-- Действия -->
             <div class="category">
                 <div class="title">🎯 Действия</div>
                 <div class="items">
@@ -312,6 +955,11 @@
                     <button id="group-btn">📁 Группа</button>
                     <button id="ungroup-btn">📂 Разгр.</button>
                 </div>
+            </div>
+
+            <div id="user-category" class="category" style="display:none;">
+                <div class="title">👤 Пользоват.</div>
+                <div class="items" id="user-items"></div>
             </div>
         </div>
     </div>
@@ -329,53 +977,138 @@
     </script>
 
     <script type="module">
-        // ============================================================
-        //  ОРИГИНАЛЬНЫЙ КОД РЕДАКТОРА С ЗАГРУЗКОЙ ИЗ ПАПКИ textures/
-        // ============================================================
+        // ================================================================
+        //  ПОЛНЫЙ КОД РЕДАКТОРА С МОБИЛЬНЫМ УПРАВЛЕНИЕМ И ЗАГРУЗОЧНЫМ ЭКРАНОМ
+        // ================================================================
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-        // ----- ЗАГРУЗОЧНЫЙ ЭКРАН (скрывается через 10 сек или после загрузки) -----
+        // -----------------------------------------------------------------
+        // 1. ЗАГРУЗОЧНЫЙ ЭКРАН – ПОКАЗ СЛАЙДОВ И МИГАНИЕ
+        // -----------------------------------------------------------------
         const loadingScreen = document.getElementById('loading-screen-editor');
-        const bar = document.getElementById('loading-bar-editor');
-        const tipText = document.getElementById('tip-text-editor');
-        const tips = [
-            "Загрузка текстур...",
-            "Сборка сцены...",
-            "Подготовка инструментов...",
-            "Почти готово!"
-        ];
-        let tipIdx = 0;
-        const startTime = Date.now();
-        let texturesLoaded = false;
+        const splashImgs = [document.getElementById('splash1'), document.getElementById('splash2'), document.getElementById(
+            'splash3')];
+        const splashText = document.getElementById('splash-text');
+        const barFill = document.getElementById('loading-bar-fill');
 
-        function updateLoading() {
-            const elapsed = (Date.now() - startTime) / 1000;
-            const progress = texturesLoaded ? 1 : Math.min(1, elapsed / 10);
-            bar.style.width = (progress * 100) + '%';
-            if (progress < 1) {
-                const idx = Math.floor(elapsed / 2.5) % tips.length;
-                if (idx !== tipIdx) { tipIdx = idx;
-                    tipText.textContent = tips[idx]; }
-                requestAnimationFrame(updateLoading);
+        let splashIndex = 0;
+        let splashTimer = 0;
+        const SPLASH_DURATION = 6.5; // секунд на картинку
+        const TOTAL_SPLASH = SPLASH_DURATION * 3; // 19.5 сек
+        let startTime = Date.now();
+        let texturesLoaded = false;
+        let splashDone = false;
+
+        // Функция показа текущего слайда
+        function showSplash(index) {
+            splashImgs.forEach((img, i) => {
+                img.style.display = (i === index) ? 'block' : 'none';
+            });
+        }
+        showSplash(0);
+
+        // Таймер слайдов
+        let splashInterval = setInterval(() => {
+            splashIndex++;
+            if (splashIndex < 3) {
+                showSplash(splashIndex);
             } else {
+                // Третий слайд показан, начинаем мигание
+                clearInterval(splashInterval);
+                splashDone = true;
+                startBlinking();
+            }
+        }, SPLASH_DURATION * 1000);
+
+        // Мигание надписи
+        let blinkCount = 0;
+        const BLINK_CYCLES = 3;
+        let blinkPhase = 0; // 0 = скрыто, 1 = показано
+        let blinkTimer = 0;
+
+        function startBlinking() {
+            // Показываем надпись, скрываем картинки (оставляем фон)
+            splashImgs.forEach(img => img.style.display = 'none');
+            splashText.style.display = 'block';
+            // Начинаем цикл мигания: 1 сек скрыто, 2 сек показано
+            blinkPhase = 0; // скрыто
+            blinkCount = 0;
+            blinkTimer = setTimeout(() => {
+                // Первая фаза: показать надпись
+                splashText.style.display = 'block';
+                blinkPhase = 1;
+                // Через 2 сек скрыть
+                setTimeout(() => {
+                    splashText.style.display = 'none';
+                    blinkPhase = 0;
+                    blinkCount++;
+                    // Повторяем ещё 2 раза
+                    if (blinkCount < BLINK_CYCLES) {
+                        // Пауза 1 сек, затем снова показать
+                        setTimeout(() => {
+                            splashText.style.display = 'block';
+                            blinkPhase = 1;
+                            setTimeout(() => {
+                                splashText.style.display = 'none';
+                                blinkPhase = 0;
+                                blinkCount++;
+                                if (blinkCount < BLINK_CYCLES) {
+                                    // ещё один цикл
+                                    setTimeout(() => {
+                                        splashText.style.display = 'block';
+                                        blinkPhase = 1;
+                                        setTimeout(() => {
+                                            splashText.style.display = 'none';
+                                            blinkPhase = 0;
+                                            blinkCount++;
+                                            // После третьего цикла скрываем экран
+                                            if (blinkCount >= BLINK_CYCLES) {
+                                                finishLoading();
+                                            }
+                                        }, 2000);
+                                    }, 1000);
+                                } else {
+                                    finishLoading();
+                                }
+                            }, 2000);
+                        }, 1000);
+                    } else {
+                        finishLoading();
+                    }
+                }, 2000);
+            }, 1000);
+        }
+
+        function finishLoading() {
+            // Скрываем загрузочный экран (если текстуры уже загружены, иначе ждём)
+            if (texturesLoaded) {
                 loadingScreen.style.opacity = '0';
                 setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
+            } else {
+                // Ждём загрузки текстур, но надпись уже скрыта, показываем прогресс
+                const waitInterval = setInterval(() => {
+                    if (texturesLoaded) {
+                        clearInterval(waitInterval);
+                        loadingScreen.style.opacity = '0';
+                        setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
+                    }
+                }, 200);
             }
         }
-        updateLoading();
 
-        // ----- РАЗМЕР КАРТЫ -----
+        // -----------------------------------------------------------------
+        // 2. ЗАГРУЗКА ТЕКСТУР (параллельно)
+        // -----------------------------------------------------------------
         let MAP_SIZE = 500,
             SEGMENTS = 40;
-        const sz = prompt('Введите размер карты в метрах (100-10000, рекомендуется 500-2000):', '500');
+        const sz = prompt('Введите размер карты (м):', '500');
         if (sz !== null) {
             MAP_SIZE = Math.max(100, Math.min(10000, parseInt(sz) || 500));
             SEGMENTS = Math.max(16, Math.min(80, Math.floor(3000 / MAP_SIZE * 80)));
         }
 
-        // ----- КОНСТАНТЫ -----
         const MAX_HEIGHT = 999,
             MIN_HEIGHT = -999;
         const WALL_HEIGHT_DEFAULT = 2.5,
@@ -383,7 +1116,7 @@
             SNAP_GRID = 0.5;
         const FALLBACK_TEXTURE_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARzQklUCAgICHwIZAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABdJREFUOE9j/P//PwM6YGL8TwD5QCwAEPQBDb2y80cAAAAASUVORK5CYII=';
 
-        // ----- СОСТОЯНИЕ -----
+        // Состояние редактора
         let currentMode = 'none';
         let reliefAction = 'raise';
         let selectedObject = null;
@@ -408,7 +1141,7 @@
         const textureExtensions = { trawa: 'jpg', stena: 'jpg', stena2: 'jpg', dpol: 'jpg', zemla: 'jpg', zemla2: 'jpg',
             nebo: 'jpg', bereza: 'png' };
 
-        // ----- КИСТЬ -----
+        // Кисть
         let brushTextureLayer = null;
         let brushCanvas = null;
         let brushCtx = null;
@@ -417,21 +1150,19 @@
         let brushSize = 0.5;
         let brushShape = 'circle';
 
-        // ----- ЗВУК -----
+        // Звук, свет, время
         let soundFileData = null;
         let soundVolume = 0.8;
         let soundDistance = 10;
-
-        // ----- СВЕТ -----
         let lightIntensity = 1.0;
         let lightDistance = 50;
-
-        // ----- ВРЕМЯ -----
         let currentTime = 12.0;
         let timeAuto = false;
         let timeInterval = null;
 
-        // ----- СЦЕНА -----
+        // -----------------------------------------------------------------
+        // 3. СЦЕНА, КАМЕРА, РЕНДЕР
+        // -----------------------------------------------------------------
         const container = document.getElementById('canvas-wrap');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x6da5c9);
@@ -449,7 +1180,7 @@
         renderer.toneMappingExposure = 1.2;
         container.appendChild(renderer.domElement);
 
-        // ----- КАМЕРА -----
+        // Орбит-контрол (будет использоваться для вращения и зума)
         const orbitControls = new OrbitControls(camera, renderer.domElement);
         orbitControls.enableDamping = true;
         orbitControls.dampingFactor = 0.08;
@@ -459,13 +1190,13 @@
         orbitControls.target.set(0, 0, 0);
         orbitControls.update();
 
-        // ----- TRANSFORM -----
+        // Transform Controls
         const transformControls = new TransformControls(camera, renderer.domElement);
         transformControls.setSize(0.6);
         scene.add(transformControls);
         transformControls.addEventListener('dragging-changed', (e) => { orbitControls.enabled = !e.value; });
 
-        // ----- ОСВЕЩЕНИЕ -----
+        // Освещение
         const ambient = new THREE.AmbientLight(0x404060, 0.5);
         scene.add(ambient);
         const sun = new THREE.DirectionalLight(0xffeedd, 1.8);
@@ -484,7 +1215,9 @@
         fill.position.set(-20, 10, -20);
         scene.add(fill);
 
-        // ----- ТЕКСТУРЫ (ЗАГРУЗКА ИЗ ПАПКИ textures/) -----
+        // -----------------------------------------------------------------
+        // 4. ТЕКСТУРЫ (загрузка из папки textures/)
+        // -----------------------------------------------------------------
         async function loadTextures() {
             let loaded = 0;
             const total = textureNames.length;
@@ -499,9 +1232,8 @@
                         reader.onload = () => {
                             textureData[name] = reader.result;
                             loaded++;
-                            // Обновляем прогресс
-                            const p = Math.min(1, loaded / total);
-                            bar.style.width = (p * 100) + '%';
+                            const progress = loaded / total;
+                            barFill.style.width = (progress * 100) + '%';
                             resolve();
                         };
                         reader.readAsDataURL(blob);
@@ -510,16 +1242,12 @@
                     console.warn(`Не удалось загрузить текстуру ${name}.${ext}`, e);
                     textureData[name] = null;
                     loaded++;
+                    const progress = loaded / total;
+                    barFill.style.width = (progress * 100) + '%';
                 }
             }
             texturesLoaded = true;
-            // Если загрузка завершилась раньше 10 секунд — скрываем экран
-            if (Date.now() - startTime < 10000) {
-                setTimeout(() => {
-                    loadingScreen.style.opacity = '0';
-                    setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
-                }, 500);
-            }
+            // Если загрузка завершилась после мигания, экран скроется сам
         }
 
         function createTextureFromBase64(b64) {
@@ -535,7 +1263,9 @@
             return tex;
         }
 
-        // ----- ЛАНДШАФТ -----
+        // -----------------------------------------------------------------
+        // 5. ЛАНДШАФТ
+        // -----------------------------------------------------------------
         const geometry = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE, SEGMENTS, SEGMENTS);
         geometry.rotateX(-Math.PI / 2);
         const posAttr = geometry.attributes.position;
@@ -604,7 +1334,7 @@
             scene.add(brushTextureLayer);
         }
 
-        // ----- СЕТКА -----
+        // Сетка
         const gridHelper = new THREE.GridHelper(MAP_SIZE, 20, 0x88ff88, 0x44aa44);
         gridHelper.position.y = 0.02;
         scene.add(gridHelper);
@@ -614,7 +1344,9 @@
         gridFine.material.opacity = 0.2;
         scene.add(gridFine);
 
-        // ----- РЕЛЬЕФ -----
+        // -----------------------------------------------------------------
+        // 6. РЕЛЬЕФ
+        // -----------------------------------------------------------------
         function averageHeightInRadius(x, z, radius) {
             let sum = 0,
                 count = 0;
@@ -659,7 +1391,9 @@
             updateTerrain();
         }
 
-        // ----- КИСТЬ РИСОВАНИЯ -----
+        // -----------------------------------------------------------------
+        // 7. КИСТЬ РИСОВАНИЯ
+        // -----------------------------------------------------------------
         function paintTextureOnTerrain(event) {
             if (!brushSelectedTexture) { setStatus('Сначала выберите текстуру кисти'); return; }
             const hit = getTerrainIntersection(event);
@@ -689,7 +1423,9 @@
             img.src = brushSelectedTexture;
         }
 
-        // ----- СОЗДАНИЕ ОБЪЕКТОВ (полный набор, как в оригинале) -----
+        // -----------------------------------------------------------------
+        // 8. СОЗДАНИЕ ОБЪЕКТОВ (полный набор)
+        // -----------------------------------------------------------------
         function createObject(type, pos, color = 0xffaa00, size = 0.6) {
             // Пользовательский спрайт
             if (type.startsWith('user_')) {
@@ -781,7 +1517,7 @@
             if (type === 'point_light') {
                 let finalPos = pos.clone();
                 if (finalPos.y < 0.5) { finalPos.y = 2.0;
-                    setStatus('Свет поднят на высоту 2 м'); }
+                    setStatus('Свет поднят на 2 м'); }
                 const intensity = parseFloat(document.getElementById('light-intensity').value) || 1.0;
                 const distance = parseFloat(document.getElementById('light-distance').value) || 50;
                 const color = 0xffeedd;
@@ -1289,7 +2025,9 @@
             return obj;
         }
 
-        // ----- СОЗДАНИЕ СТЕН -----
+        // -----------------------------------------------------------------
+        // 9. СОЗДАНИЕ СТЕН
+        // -----------------------------------------------------------------
         function createWall(x1, z1, x2, z2, height = WALL_HEIGHT_DEFAULT, width = WALL_WIDTH_DEFAULT, type = 'wood',
             angleDeg = 60) {
             if (type === 'triangle') {
@@ -1409,7 +2147,9 @@
             }
         }
 
-        // ----- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ -----
+        // -----------------------------------------------------------------
+        // 10. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        // -----------------------------------------------------------------
         function removeObject(obj) {
             scene.remove(obj.mesh);
             const idx = sceneObjects.indexOf(obj);
@@ -1446,7 +2186,7 @@
             ghostType = null;
             ghostData = {};
             orbitControls.enableZoom = true;
-            setHint('Выберите инструмент справа');
+            setHint('Выберите инструмент');
         }
 
         function selectObject(obj) {
@@ -1492,7 +2232,9 @@
                 setStatus('Объект дублирован'); }
         }
 
-        // ----- ПОЛЬЗОВАТЕЛЬСКИЕ ТЕКСТУРЫ -----
+        // -----------------------------------------------------------------
+        // 11. ПОЛЬЗОВАТЕЛЬСКИЕ ТЕКСТУРЫ
+        // -----------------------------------------------------------------
         function addUserTexture(name, type, dataURL) {
             if (userTextures.some(u => u.name === name)) { setStatus('Текстура с таким именем уже существует'); return false; }
             userTextures.push({ name, type, dataURL });
@@ -1550,7 +2292,9 @@
             });
         }
 
-        // ----- ФУНКЦИИ ДЛЯ ПРЕДМЕТОВ -----
+        // -----------------------------------------------------------------
+        // 12. ФУНКЦИИ ДЛЯ ПРЕДМЕТОВ
+        // -----------------------------------------------------------------
         function applyFunctionToObject(obj, func) {
             if (!obj) return;
             const pos = obj.data.position;
@@ -1593,7 +2337,9 @@
             setStatus(`Дверь ${obj.data.isOpen ? 'открыта' : 'закрыта'}`);
         }
 
-        // ----- ПЕРЕСЕЧЕНИЯ -----
+        // -----------------------------------------------------------------
+        // 13. ПЕРЕСЕЧЕНИЯ (для кликов)
+        // -----------------------------------------------------------------
         function getTerrainIntersection(e) {
             const rect = renderer.domElement.getBoundingClientRect();
             const mouse = new THREE.Vector2(
@@ -1627,7 +2373,9 @@
             return null;
         }
 
-        // ----- ОБРАБОТЧИКИ ДВОЙНОГО КЛИКА -----
+        // -----------------------------------------------------------------
+        // 14. ОБРАБОТЧИКИ ДВОЙНОГО КЛИКА (размещение)
+        // -----------------------------------------------------------------
         renderer.domElement.addEventListener('dblclick', (e) => {
             if (currentMode === 'walls') {
                 if (!isGhostActive) {
@@ -1774,7 +2522,9 @@
             }
         });
 
-        // ----- ОБНОВЛЕНИЕ ПРИЗРАКА -----
+        // -----------------------------------------------------------------
+        // 15. ОБНОВЛЕНИЕ ПРИЗРАКА (плавное движение)
+        // -----------------------------------------------------------------
         function updateGhostSmooth() {
             if (!isGhostActive || !ghostObject) return;
             if (ghostType === 'wall' && ghostStartPoint) {
@@ -1806,7 +2556,9 @@
             }
         }
 
-        // ----- MOUSEMOVE / WHEEL / CLICK -----
+        // -----------------------------------------------------------------
+        // 16. ОБРАБОТЧИКИ МЫШИ/ТАЧ (клики, движение, колёсико)
+        // -----------------------------------------------------------------
         renderer.domElement.addEventListener('mousemove', (e) => {
             if (!isGhostActive || !ghostObject) return;
             const hit = getTerrainIntersection(e);
@@ -1844,6 +2596,7 @@
             }
         });
 
+        // Клики (тапы) – выбор, удаление, рельеф, кисть
         renderer.domElement.addEventListener('click', (e) => {
             if (currentMode === 'terrain') {
                 const hit = getTerrainIntersection(e);
@@ -1895,7 +2648,9 @@
             }
         });
 
-        // ----- ПАНЕЛЬ УПРАВЛЕНИЯ -----
+        // -----------------------------------------------------------------
+        // 17. ПАНЕЛЬ УПРАВЛЕНИЯ (все обработчики)
+        // -----------------------------------------------------------------
         document.querySelectorAll('#relief-mode button').forEach(b => {
             b.addEventListener('click', () => {
                 document.querySelectorAll('#relief-mode button').forEach(x => x.classList.remove('active'));
@@ -1943,18 +2698,8 @@
             lightDistance = parseFloat(e.target.value);
             document.getElementById('distance-label').textContent = lightDistance.toFixed(1);
         });
-        document.getElementById('set-sun-intensity').addEventListener('click', () => {
-            document.getElementById('light-intensity').value = 10;
-            lightIntensity = 10;
-            document.getElementById('intensity-label').textContent = '10.0';
-            setStatus('Интенсивность установлена как у солнца (10.0)');
-        });
-        document.getElementById('set-normal-intensity').addEventListener('click', () => {
-            document.getElementById('light-intensity').value = 1.0;
-            lightIntensity = 1.0;
-            document.getElementById('intensity-label').textContent = '1.0';
-            setStatus('Интенсивность установлена на 1.0');
-        });
+        document.getElementById('light-activate').addEventListener('click', () => { currentObjectType = 'point_light';
+            setMode('objects'); });
 
         document.querySelectorAll('#wall-items button').forEach(b => {
             b.addEventListener('click', () => {
@@ -1969,9 +2714,9 @@
             });
         });
         document.getElementById('triangle-angle').addEventListener('input', (e) => {
-            const val = parseInt(e.target.value);
-            document.getElementById('triangle-angle-label').textContent = val + '°';
+            document.getElementById('triangle-angle-label').textContent = e.target.value + '°';
         });
+        document.getElementById('wall-activate').addEventListener('click', () => { setMode('walls'); });
 
         document.querySelectorAll('#object-items button').forEach(b => {
             b.addEventListener('click', () => {
@@ -1981,9 +2726,6 @@
             });
         });
         document.getElementById('object-activate').addEventListener('click', () => { setMode('objects'); });
-        document.getElementById('light-activate').addEventListener('click', () => { currentObjectType = 'point_light';
-            setMode('objects'); });
-        document.getElementById('wall-activate').addEventListener('click', () => { setMode('walls'); });
 
         document.getElementById('collision-toggle').addEventListener('click', () => { setMode('collision');
             document.getElementById('collision-toggle').classList.toggle('active'); });
@@ -2090,7 +2832,9 @@
             setStatus('Группа разгруппирована');
         });
 
-        // ----- МОДАЛКИ -----
+        // -----------------------------------------------------------------
+        // 18. МОДАЛКИ
+        // -----------------------------------------------------------------
         // Текстуры
         const modal = document.getElementById('modal-overlay');
         const fileDrop = document.getElementById('file-drop');
@@ -2206,7 +2950,9 @@
             }
         });
 
-        // ----- ТРАНСФОРМ + ВРЕМЯ -----
+        // -----------------------------------------------------------------
+        // 19. ТРАНСФОРМ + ВРЕМЯ
+        // -----------------------------------------------------------------
         transformControls.addEventListener('objectChange', () => {
             if (selectedObject) {
                 const m = selectedObject.mesh;
@@ -2274,7 +3020,9 @@
             }
         });
 
-        // ----- СОХРАНЕНИЕ / ЗАГРУЗКА JSON -----
+        // -----------------------------------------------------------------
+        // 20. СОХРАНЕНИЕ / ЗАГРУЗКА JSON
+        // -----------------------------------------------------------------
         document.getElementById('save-json').addEventListener('click', () => {
             let brushImageData = null;
             if (brushCanvas) { brushImageData = brushCanvas.toDataURL('image/png'); }
@@ -2419,7 +3167,9 @@
             e.target.value = '';
         });
 
-        // ----- ЭКСПОРТ HTML (с мобильным джойстиком) -----
+        // -----------------------------------------------------------------
+        // 21. ЭКСПОРТ HTML (с мобильным джойстиком)
+        // -----------------------------------------------------------------
         document.getElementById('export-html').addEventListener('click', () => {
             let brushImageData = null;
             if (brushCanvas) { brushImageData = brushCanvas.toDataURL('image/png'); }
@@ -3060,7 +3810,9 @@
         </html>`;
         }
 
-        // ----- ИМПОРТ HTML -----
+        // -----------------------------------------------------------------
+        // 22. ИМПОРТ HTML
+        // -----------------------------------------------------------------
         document.getElementById('import-html-btn').addEventListener('click', () => { document.getElementById(
                 'import-html-input').click(); });
         document.getElementById('import-html-input').addEventListener('change', (e) => {
@@ -3179,7 +3931,9 @@
             e.target.value = '';
         });
 
-        // ----- ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ -----
+        // -----------------------------------------------------------------
+        // 23. ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
+        // -----------------------------------------------------------------
         function setMode(mode) {
             if (isGhostActive) removeGhost();
             currentMode = mode;
@@ -3200,7 +3954,9 @@
             if (navigator.vibrate) navigator.vibrate(10);
         }
 
-        // ----- ESCAPE -----
+        // -----------------------------------------------------------------
+        // 24. ESCAPE
+        // -----------------------------------------------------------------
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 if (isGhostActive) removeGhost();
@@ -3214,19 +3970,24 @@
             }
         });
 
-        // ----- ОЧИСТКА -----
+        // -----------------------------------------------------------------
+        // 25. ОЧИСТКА
+        // -----------------------------------------------------------------
         document.getElementById('clear-all').addEventListener('click', () => {
             if (confirm('Удалить всё?')) { clearAll();
                 setStatus('Всё очищено'); }
         });
 
-        // ----- МОБИЛЬНЫЙ ДЖОЙСТИК В РЕДАКТОРЕ -----
+        // ================================================================
+        // 26. МОБИЛЬНЫЙ ДЖОЙСТИК ДЛЯ УПРАВЛЕНИЯ КАМЕРОЙ (перемещение цели)
+        // ================================================================
         const joystickEl = document.getElementById('touch-joystick');
         const stickEl = document.getElementById('joystick-stick');
         let joyActive = false,
             joyX = 0,
             joyY = 0,
             joyTouchId = null;
+        let moveSpeed = 2.0; // скорость перемещения
 
         function isMobile() { return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <
                 1024); }
@@ -3287,63 +4048,49 @@
             stickEl.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`;
         }
 
-        document.getElementById('action-btn').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (selectedObject && selectedObject.type === 'door') {
-                toggleDoor(selectedObject);
-            } else {
-                setStatus('Выделите дверь для открытия');
-            }
-        });
+        // Обновление камеры по джойстику (в цикле анимации)
+        // Будем использовать дополнительный обработчик в animate
 
-        // ----- ДВОЙНОЙ ТАП ДЛЯ МОБИЛ -----
-        let lastTapTime = 0;
-        let tapTimeout = null;
-        let lastTapPos = { x: 0, y: 0 };
-        renderer.domElement.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                const t = e.touches[0];
-                const now = Date.now();
-                const dx = Math.abs(t.clientX - lastTapPos.x);
-                const dy = Math.abs(t.clientY - lastTapPos.y);
-                if (now - lastTapTime < 400 && dx < 30 && dy < 30) {
-                    e.preventDefault();
-                    const fakeEvent = new MouseEvent('dblclick', {
-                        clientX: t.clientX,
-                        clientY: t.clientY,
-                        button: 0
-                    });
-                    renderer.domElement.dispatchEvent(fakeEvent);
-                    lastTapTime = 0;
-                    if (tapTimeout) { clearTimeout(tapTimeout);
-                        tapTimeout = null; }
-                } else {
-                    lastTapTime = now;
-                    lastTapPos.x = t.clientX;
-                    lastTapPos.y = t.clientY;
-                    tapTimeout = setTimeout(() => {
-                        const fakeEvent = new MouseEvent('click', {
-                            clientX: t.clientX,
-                            clientY: t.clientY,
-                            button: 0
-                        });
-                        renderer.domElement.dispatchEvent(fakeEvent);
-                        tapTimeout = null;
-                    }, 300);
+        // Сохраним ссылку на оригинальный animate, чтобы расширить
+        const originalAnimate = window._editorAnimate || null;
+
+        // Переопределим анимацию, добавив управление камерой
+        const oldAnimate = window._editorAnimate || function() {};
+        window._editorAnimate = function() {
+            // Вызовем оригинальную анимацию, если она была
+            if (oldAnimate) oldAnimate();
+            // Управление камерой через джойстик
+            if (isMobile() && joyActive) {
+                const deadZone = 0.15;
+                if (Math.abs(joyX) > deadZone || Math.abs(joyY) > deadZone) {
+                    // Получаем направления
+                    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    forward.y = 0;
+                    forward.normalize();
+                    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                    right.y = 0;
+                    right.normalize();
+                    const up = new THREE.Vector3(0, 1, 0);
+
+                    // Смещение цели
+                    const moveVec = new THREE.Vector3();
+                    // Вперёд/назад (по Y джойстика – вперёд/назад)
+                    moveVec.addScaledVector(forward, -joyY * moveSpeed * 0.016);
+                    // Влево/вправо (по X джойстика)
+                    moveVec.addScaledVector(right, joyX * moveSpeed * 0.016);
+                    // Вверх/вниз (по Y можно добавить, но для простоты не будем)
+                    // можно добавить вертикаль, если нужно
+                    // moveVec.addScaledVector(up, -joyY * moveSpeed * 0.016 * 0.5); // раскомментировать для вертикали
+
+                    orbitControls.target.add(moveVec);
+                    orbitControls.update();
                 }
             }
-        });
+        };
 
-        // ----- ПАНЕЛЬ (открытие/закрытие на мобиле) -----
-        document.getElementById('panel-toggle').addEventListener('click', () => {
-            document.getElementById('panel').classList.toggle('open');
-        });
-        document.getElementById('panel-toggle').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            document.getElementById('panel').classList.toggle('open');
-        });
-
-        // ----- ИНИЦИАЛИЗАЦИЯ -----
+        // -----------------------------------------------------------------
+        // 27. ИНИЦИАЛИЗАЦИЯ
+        // -----------------------------------------------------------------
         // Загружаем текстуры, затем инициализируем сцену
         await loadTextures();
         initTerrain();
@@ -3373,19 +4120,36 @@
         createWall(-1, 2, -1, -1, 2.5, 0.3, 'wood');
         createObject('door', new THREE.Vector3(0, 0, 1.5));
 
-        setStatus('Редактор загружен. Текстуры из папки textures/');
+        setStatus('Редактор загружен. На мобиле — джойстик для перемещения камеры.');
 
-        // ----- АНИМАЦИЯ -----
+        // -----------------------------------------------------------------
+        // 28. АНИМАЦИЯ (совмещаем с управлением джойстиком)
+        // -----------------------------------------------------------------
         function animateEditor() {
             requestAnimationFrame(animateEditor);
             orbitControls.update();
+
+            // Обновление призрака
             if (isGhostActive && ghostObject) {
                 updateGhostSmooth();
             }
+
+            // Вызов дополнительной логики для джойстика
+            if (window._editorAnimate) {
+                window._editorAnimate();
+            }
+
             renderer.render(scene, camera);
         }
+        // Сохраняем оригинальную анимацию для расширения
+        window._editorAnimate = function() {
+            // Управление камерой через джойстик (уже встроено выше)
+        };
         animateEditor();
 
+        // -----------------------------------------------------------------
+        // 29. РЕСАЙЗ
+        // -----------------------------------------------------------------
         window.addEventListener('resize', () => {
             const w = container.clientWidth,
                 h = container.clientHeight;
@@ -3403,7 +4167,7 @@
             }
         });
 
-        console.log('AWANGARD-engine загружен. Текстуры из папки textures/');
+        console.log('AWANGARD-engine Mobile Ready');
     </script>
 </body>
 </html>
