@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AWANGARD-engine Mobile</title>
+    <title>AWANGARD-engine</title>
     <style>
         /* ===== ГЛОБАЛЬНЫЙ СБРОС ===== */
         * {
@@ -22,7 +22,7 @@
             touch-action: none;
         }
 
-        /* ===== ЗАГРУЗОЧНЫЙ ЭКРАН (полноэкранный) ===== */
+        /* ===== ЗАГРУЗОЧНЫЙ ЭКРАН ===== */
         #loading-screen-editor {
             position: fixed;
             top: 0;
@@ -82,7 +82,6 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             max-width: 90%;
         }
-        /* Бар загрузки (оставлен для прогресса, но скрыт за картинками) */
         #loading-bar-editor {
             position: absolute;
             bottom: 30px;
@@ -102,6 +101,33 @@
             background: #4a9eff;
             transition: width 0.3s;
             border-radius: 10px;
+        }
+
+        /* ===== ЗАГОЛОВОК (левый верхний угол) ===== */
+        #app-title {
+            position: fixed;
+            top: 12px;
+            left: 16px;
+            z-index: 40;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: clamp(14px, 2.5vw, 22px);
+            font-weight: 700;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            letter-spacing: 0.5px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 14px;
+            border-radius: 30px;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        #app-title .version {
+            font-weight: 300;
+            font-size: 0.6em;
+            opacity: 0.6;
+            margin-left: 6px;
         }
 
         /* ===== ОСНОВНОЙ КОНТЕЙНЕР ===== */
@@ -125,7 +151,7 @@
             touch-action: none;
         }
 
-        /* ===== ПАНЕЛЬ (скрыта на мобиле, открывается кнопкой) ===== */
+        /* ===== ПАНЕЛЬ ===== */
         #panel {
             position: absolute;
             right: 0;
@@ -280,7 +306,7 @@
             transform: scale(0.94);
         }
 
-        /* ===== ТОПБАР (адаптивный) ===== */
+        /* ===== ТОПБАР ===== */
         #topbar {
             position: absolute;
             top: 8px;
@@ -345,7 +371,6 @@
         #panel-toggle:active {
             background: rgba(74, 158, 255, 0.4) !important;
         }
-        /* На ПК панель всегда открыта, кнопка меню скрыта */
         @media (min-width: 768px) {
             #panel {
                 transform: translateX(0);
@@ -390,7 +415,7 @@
             }
         }
 
-        /* ===== СТАТУС И ПОДСКАЗКА ===== */
+        /* ===== СТАТУС ===== */
         #status {
             position: absolute;
             bottom: 10px;
@@ -570,7 +595,7 @@
             border: 1px solid #444;
         }
 
-        /* ===== ДЖОЙСТИК (только на мобиле) ===== */
+        /* ===== ДЖОЙСТИК ===== */
         #touch-joystick {
             position: absolute;
             bottom: 30px;
@@ -603,7 +628,6 @@
         #touch-joystick .stick.active {
             box-shadow: 0 0 40px rgba(74, 158, 255, 0.6);
         }
-        /* На ПК скрываем джойстик */
         @media (min-width: 768px) {
             #touch-joystick {
                 display: none !important;
@@ -650,7 +674,7 @@
             }
         }
 
-        /* ===== КНОПКА F (для мобил) ===== */
+        /* ===== КНОПКА F ===== */
         #action-btn {
             position: absolute;
             bottom: 30px;
@@ -698,7 +722,7 @@
             }
         }
 
-        /* ===== ДОПОЛНИТЕЛЬНО: треугольник ===== */
+        /* ===== ТРЕУГОЛЬНИК ===== */
         #triangle-angle-group {
             display: none;
             margin-top: 4px;
@@ -726,7 +750,6 @@
     <!-- ===== ЗАГРУЗОЧНЫЙ ЭКРАН ===== -->
     <div id="loading-screen-editor">
         <div id="splash-container">
-            <!-- Три картинки (должны лежать рядом с index.html) -->
             <img class="splash-img" id="splash1" src="1.png" alt="splash1">
             <img class="splash-img" id="splash2" src="2.png" alt="splash2">
             <img class="splash-img" id="splash3" src="3.png" alt="splash3">
@@ -735,6 +758,11 @@
             </div>
             <div id="loading-bar-editor"><div id="loading-bar-fill"></div></div>
         </div>
+    </div>
+
+    <!-- ===== ЗАГОЛОВОК ===== -->
+    <div id="app-title">
+        AWANGARD-engine <span class="version">v8.1</span>
     </div>
 
     <!-- ===== МОДАЛКИ ===== -->
@@ -818,7 +846,7 @@
             <div id="status">Готов</div>
             <div id="hint">Выберите инструмент</div>
 
-            <!-- Джойстик (только мобила) -->
+            <!-- Джойстик -->
             <div id="touch-joystick">
                 <div class="stick" id="joystick-stick"></div>
             </div>
@@ -826,7 +854,7 @@
             <div id="action-btn">F</div>
         </div>
 
-        <!-- Панель инструментов -->
+        <!-- Панель -->
         <div id="panel">
             <h2>🛠 Инструменты</h2>
             <!-- Рельеф -->
@@ -978,14 +1006,14 @@
 
     <script type="module">
         // ================================================================
-        //  ПОЛНЫЙ КОД РЕДАКТОРА С МОБИЛЬНЫМ УПРАВЛЕНИЕМ И ЗАГРУЗОЧНЫМ ЭКРАНОМ
+        //  ПОЛНЫЙ КОД РЕДАКТОРА – ИСПРАВЛЕННАЯ ВЕРСИЯ
         // ================================================================
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
         // -----------------------------------------------------------------
-        // 1. ЗАГРУЗОЧНЫЙ ЭКРАН – ПОКАЗ СЛАЙДОВ И МИГАНИЕ
+        // 1. ЗАГРУЗОЧНЫЙ ЭКРАН
         // -----------------------------------------------------------------
         const loadingScreen = document.getElementById('loading-screen-editor');
         const splashImgs = [document.getElementById('splash1'), document.getElementById('splash2'), document.getElementById(
@@ -994,14 +1022,10 @@
         const barFill = document.getElementById('loading-bar-fill');
 
         let splashIndex = 0;
-        let splashTimer = 0;
-        const SPLASH_DURATION = 6.5; // секунд на картинку
-        const TOTAL_SPLASH = SPLASH_DURATION * 3; // 19.5 сек
-        let startTime = Date.now();
+        const SPLASH_DURATION = 6.5;
         let texturesLoaded = false;
         let splashDone = false;
 
-        // Функция показа текущего слайда
         function showSplash(index) {
             splashImgs.forEach((img, i) => {
                 img.style.display = (i === index) ? 'block' : 'none';
@@ -1009,85 +1033,54 @@
         }
         showSplash(0);
 
-        // Таймер слайдов
         let splashInterval = setInterval(() => {
             splashIndex++;
             if (splashIndex < 3) {
                 showSplash(splashIndex);
             } else {
-                // Третий слайд показан, начинаем мигание
                 clearInterval(splashInterval);
                 splashDone = true;
                 startBlinking();
             }
         }, SPLASH_DURATION * 1000);
 
-        // Мигание надписи
         let blinkCount = 0;
         const BLINK_CYCLES = 3;
-        let blinkPhase = 0; // 0 = скрыто, 1 = показано
-        let blinkTimer = 0;
 
         function startBlinking() {
-            // Показываем надпись, скрываем картинки (оставляем фон)
             splashImgs.forEach(img => img.style.display = 'none');
             splashText.style.display = 'block';
-            // Начинаем цикл мигания: 1 сек скрыто, 2 сек показано
-            blinkPhase = 0; // скрыто
-            blinkCount = 0;
-            blinkTimer = setTimeout(() => {
-                // Первая фаза: показать надпись
-                splashText.style.display = 'block';
-                blinkPhase = 1;
-                // Через 2 сек скрыть
+            // Первый цикл: 1 сек скрыто, 2 сек показано
+            setTimeout(() => {
+                splashText.style.display = 'none';
                 setTimeout(() => {
-                    splashText.style.display = 'none';
-                    blinkPhase = 0;
-                    blinkCount++;
-                    // Повторяем ещё 2 раза
-                    if (blinkCount < BLINK_CYCLES) {
-                        // Пауза 1 сек, затем снова показать
+                    splashText.style.display = 'block';
+                    setTimeout(() => {
+                        splashText.style.display = 'none';
                         setTimeout(() => {
                             splashText.style.display = 'block';
-                            blinkPhase = 1;
                             setTimeout(() => {
                                 splashText.style.display = 'none';
-                                blinkPhase = 0;
-                                blinkCount++;
-                                if (blinkCount < BLINK_CYCLES) {
-                                    // ещё один цикл
+                                // Третий цикл
+                                setTimeout(() => {
+                                    splashText.style.display = 'block';
                                     setTimeout(() => {
-                                        splashText.style.display = 'block';
-                                        blinkPhase = 1;
-                                        setTimeout(() => {
-                                            splashText.style.display = 'none';
-                                            blinkPhase = 0;
-                                            blinkCount++;
-                                            // После третьего цикла скрываем экран
-                                            if (blinkCount >= BLINK_CYCLES) {
-                                                finishLoading();
-                                            }
-                                        }, 2000);
-                                    }, 1000);
-                                } else {
-                                    finishLoading();
-                                }
+                                        splashText.style.display = 'none';
+                                        finishLoading();
+                                    }, 2000);
+                                }, 1000);
                             }, 2000);
                         }, 1000);
-                    } else {
-                        finishLoading();
-                    }
-                }, 2000);
+                    }, 2000);
+                }, 1000);
             }, 1000);
         }
 
         function finishLoading() {
-            // Скрываем загрузочный экран (если текстуры уже загружены, иначе ждём)
             if (texturesLoaded) {
                 loadingScreen.style.opacity = '0';
                 setTimeout(() => { loadingScreen.style.display = 'none'; }, 800);
             } else {
-                // Ждём загрузки текстур, но надпись уже скрыта, показываем прогресс
                 const waitInterval = setInterval(() => {
                     if (texturesLoaded) {
                         clearInterval(waitInterval);
@@ -1099,7 +1092,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 2. ЗАГРУЗКА ТЕКСТУР (параллельно)
+        // 2. ЗАГРУЗКА ТЕКСТУР
         // -----------------------------------------------------------------
         let MAP_SIZE = 500,
             SEGMENTS = 40;
@@ -1161,7 +1154,7 @@
         let timeInterval = null;
 
         // -----------------------------------------------------------------
-        // 3. СЦЕНА, КАМЕРА, РЕНДЕР
+        // 3. СЦЕНА
         // -----------------------------------------------------------------
         const container = document.getElementById('canvas-wrap');
         const scene = new THREE.Scene();
@@ -1180,7 +1173,6 @@
         renderer.toneMappingExposure = 1.2;
         container.appendChild(renderer.domElement);
 
-        // Орбит-контрол (будет использоваться для вращения и зума)
         const orbitControls = new OrbitControls(camera, renderer.domElement);
         orbitControls.enableDamping = true;
         orbitControls.dampingFactor = 0.08;
@@ -1190,7 +1182,6 @@
         orbitControls.target.set(0, 0, 0);
         orbitControls.update();
 
-        // Transform Controls
         const transformControls = new TransformControls(camera, renderer.domElement);
         transformControls.setSize(0.6);
         scene.add(transformControls);
@@ -1216,7 +1207,7 @@
         scene.add(fill);
 
         // -----------------------------------------------------------------
-        // 4. ТЕКСТУРЫ (загрузка из папки textures/)
+        // 4. ТЕКСТУРЫ (загрузка)
         // -----------------------------------------------------------------
         async function loadTextures() {
             let loaded = 0;
@@ -1232,8 +1223,7 @@
                         reader.onload = () => {
                             textureData[name] = reader.result;
                             loaded++;
-                            const progress = loaded / total;
-                            barFill.style.width = (progress * 100) + '%';
+                            barFill.style.width = (loaded / total * 100) + '%';
                             resolve();
                         };
                         reader.readAsDataURL(blob);
@@ -1242,12 +1232,10 @@
                     console.warn(`Не удалось загрузить текстуру ${name}.${ext}`, e);
                     textureData[name] = null;
                     loaded++;
-                    const progress = loaded / total;
-                    barFill.style.width = (progress * 100) + '%';
+                    barFill.style.width = (loaded / total * 100) + '%';
                 }
             }
             texturesLoaded = true;
-            // Если загрузка завершилась после мигания, экран скроется сам
         }
 
         function createTextureFromBase64(b64) {
@@ -1392,7 +1380,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 7. КИСТЬ РИСОВАНИЯ
+        // 7. КИСТЬ
         // -----------------------------------------------------------------
         function paintTextureOnTerrain(event) {
             if (!brushSelectedTexture) { setStatus('Сначала выберите текстуру кисти'); return; }
@@ -1424,7 +1412,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 8. СОЗДАНИЕ ОБЪЕКТОВ (полный набор)
+        // 8. ОБЪЕКТЫ (полный набор)
         // -----------------------------------------------------------------
         function createObject(type, pos, color = 0xffaa00, size = 0.6) {
             // Пользовательский спрайт
@@ -2026,7 +2014,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 9. СОЗДАНИЕ СТЕН
+        // 9. СТЕНЫ
         // -----------------------------------------------------------------
         function createWall(x1, z1, x2, z2, height = WALL_HEIGHT_DEFAULT, width = WALL_WIDTH_DEFAULT, type = 'wood',
             angleDeg = 60) {
@@ -2338,7 +2326,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 13. ПЕРЕСЕЧЕНИЯ (для кликов)
+        // 13. ПЕРЕСЕЧЕНИЯ
         // -----------------------------------------------------------------
         function getTerrainIntersection(e) {
             const rect = renderer.domElement.getBoundingClientRect();
@@ -2374,7 +2362,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 14. ОБРАБОТЧИКИ ДВОЙНОГО КЛИКА (размещение)
+        // 14. ДВОЙНОЙ КЛИК (размещение)
         // -----------------------------------------------------------------
         renderer.domElement.addEventListener('dblclick', (e) => {
             if (currentMode === 'walls') {
@@ -2523,7 +2511,7 @@
         });
 
         // -----------------------------------------------------------------
-        // 15. ОБНОВЛЕНИЕ ПРИЗРАКА (плавное движение)
+        // 15. ОБНОВЛЕНИЕ ПРИЗРАКА
         // -----------------------------------------------------------------
         function updateGhostSmooth() {
             if (!isGhostActive || !ghostObject) return;
@@ -2557,7 +2545,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 16. ОБРАБОТЧИКИ МЫШИ/ТАЧ (клики, движение, колёсико)
+        // 16. ОБРАБОТЧИКИ МЫШИ/ТАЧ
         // -----------------------------------------------------------------
         renderer.domElement.addEventListener('mousemove', (e) => {
             if (!isGhostActive || !ghostObject) return;
@@ -2596,7 +2584,6 @@
             }
         });
 
-        // Клики (тапы) – выбор, удаление, рельеф, кисть
         renderer.domElement.addEventListener('click', (e) => {
             if (currentMode === 'terrain') {
                 const hit = getTerrainIntersection(e);
@@ -2649,7 +2636,7 @@
         });
 
         // -----------------------------------------------------------------
-        // 17. ПАНЕЛЬ УПРАВЛЕНИЯ (все обработчики)
+        // 17. ПАНЕЛЬ УПРАВЛЕНИЯ
         // -----------------------------------------------------------------
         document.querySelectorAll('#relief-mode button').forEach(b => {
             b.addEventListener('click', () => {
@@ -2835,7 +2822,6 @@
         // -----------------------------------------------------------------
         // 18. МОДАЛКИ
         // -----------------------------------------------------------------
-        // Текстуры
         const modal = document.getElementById('modal-overlay');
         const fileDrop = document.getElementById('file-drop');
         const fileInput = document.getElementById('file-input');
@@ -2968,7 +2954,6 @@
             }
         });
 
-        // Время суток
         function updateTimeDisplay(hours) {
             const h = Math.floor(hours);
             const m = Math.round((hours - h) * 60);
@@ -3168,7 +3153,7 @@
         });
 
         // -----------------------------------------------------------------
-        // 21. ЭКСПОРТ HTML (с мобильным джойстиком)
+        // 21. ЭКСПОРТ HTML
         // -----------------------------------------------------------------
         document.getElementById('export-html').addEventListener('click', () => {
             let brushImageData = null;
@@ -3978,16 +3963,16 @@
                 setStatus('Всё очищено'); }
         });
 
-        // ================================================================
-        // 26. МОБИЛЬНЫЙ ДЖОЙСТИК ДЛЯ УПРАВЛЕНИЯ КАМЕРОЙ (перемещение цели)
-        // ================================================================
+        // -----------------------------------------------------------------
+        // 26. ДЖОЙСТИК ДЛЯ УПРАВЛЕНИЯ КАМЕРОЙ (мобила)
+        // -----------------------------------------------------------------
         const joystickEl = document.getElementById('touch-joystick');
         const stickEl = document.getElementById('joystick-stick');
         let joyActive = false,
             joyX = 0,
             joyY = 0,
             joyTouchId = null;
-        let moveSpeed = 2.0; // скорость перемещения
+        let moveSpeed = 3.0; // скорость перемещения цели
 
         function isMobile() { return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <
                 1024); }
@@ -4048,50 +4033,70 @@
             stickEl.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`;
         }
 
-        // Обновление камеры по джойстику (в цикле анимации)
-        // Будем использовать дополнительный обработчик в animate
+        // Кнопка F
+        document.getElementById('action-btn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (selectedObject && selectedObject.type === 'door') {
+                toggleDoor(selectedObject);
+            } else {
+                setStatus('Выделите дверь для открытия');
+            }
+        });
 
-        // Сохраним ссылку на оригинальный animate, чтобы расширить
-        const originalAnimate = window._editorAnimate || null;
-
-        // Переопределим анимацию, добавив управление камерой
-        const oldAnimate = window._editorAnimate || function() {};
-        window._editorAnimate = function() {
-            // Вызовем оригинальную анимацию, если она была
-            if (oldAnimate) oldAnimate();
-            // Управление камерой через джойстик
-            if (isMobile() && joyActive) {
-                const deadZone = 0.15;
-                if (Math.abs(joyX) > deadZone || Math.abs(joyY) > deadZone) {
-                    // Получаем направления
-                    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-                    forward.y = 0;
-                    forward.normalize();
-                    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-                    right.y = 0;
-                    right.normalize();
-                    const up = new THREE.Vector3(0, 1, 0);
-
-                    // Смещение цели
-                    const moveVec = new THREE.Vector3();
-                    // Вперёд/назад (по Y джойстика – вперёд/назад)
-                    moveVec.addScaledVector(forward, -joyY * moveSpeed * 0.016);
-                    // Влево/вправо (по X джойстика)
-                    moveVec.addScaledVector(right, joyX * moveSpeed * 0.016);
-                    // Вверх/вниз (по Y можно добавить, но для простоты не будем)
-                    // можно добавить вертикаль, если нужно
-                    // moveVec.addScaledVector(up, -joyY * moveSpeed * 0.016 * 0.5); // раскомментировать для вертикали
-
-                    orbitControls.target.add(moveVec);
-                    orbitControls.update();
+        // -----------------------------------------------------------------
+        // 27. ДВОЙНОЙ ТАП ДЛЯ МОБИЛ
+        // -----------------------------------------------------------------
+        let lastTapTime = 0;
+        let tapTimeout = null;
+        let lastTapPos = { x: 0, y: 0 };
+        renderer.domElement.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                const t = e.touches[0];
+                const now = Date.now();
+                const dx = Math.abs(t.clientX - lastTapPos.x);
+                const dy = Math.abs(t.clientY - lastTapPos.y);
+                if (now - lastTapTime < 400 && dx < 30 && dy < 30) {
+                    e.preventDefault();
+                    const fakeEvent = new MouseEvent('dblclick', {
+                        clientX: t.clientX,
+                        clientY: t.clientY,
+                        button: 0
+                    });
+                    renderer.domElement.dispatchEvent(fakeEvent);
+                    lastTapTime = 0;
+                    if (tapTimeout) { clearTimeout(tapTimeout);
+                        tapTimeout = null; }
+                } else {
+                    lastTapTime = now;
+                    lastTapPos.x = t.clientX;
+                    lastTapPos.y = t.clientY;
+                    tapTimeout = setTimeout(() => {
+                        const fakeEvent = new MouseEvent('click', {
+                            clientX: t.clientX,
+                            clientY: t.clientY,
+                            button: 0
+                        });
+                        renderer.domElement.dispatchEvent(fakeEvent);
+                        tapTimeout = null;
+                    }, 300);
                 }
             }
-        };
+        });
 
         // -----------------------------------------------------------------
-        // 27. ИНИЦИАЛИЗАЦИЯ
+        // 28. ПАНЕЛЬ (открытие на мобиле)
         // -----------------------------------------------------------------
-        // Загружаем текстуры, затем инициализируем сцену
+        document.getElementById('panel-toggle').addEventListener('click', () => {
+            document.getElementById('panel').classList.toggle('open');
+        });
+        document.getElementById('panel-toggle').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            document.getElementById('panel').classList.toggle('open');
+        });
+
+        // -----------------------------------------------------------------
+        // 29. ИНИЦИАЛИЗАЦИЯ
+        // -----------------------------------------------------------------
         await loadTextures();
         initTerrain();
         setMode('none');
@@ -4120,35 +4125,46 @@
         createWall(-1, 2, -1, -1, 2.5, 0.3, 'wood');
         createObject('door', new THREE.Vector3(0, 0, 1.5));
 
-        setStatus('Редактор загружен. На мобиле — джойстик для перемещения камеры.');
+        setStatus('Редактор загружен. На мобиле — джойстик для камеры.');
 
         // -----------------------------------------------------------------
-        // 28. АНИМАЦИЯ (совмещаем с управлением джойстиком)
+        // 30. АНИМАЦИЯ (с управлением джойстиком)
         // -----------------------------------------------------------------
         function animateEditor() {
             requestAnimationFrame(animateEditor);
+
+            // Управление камерой через джойстик
+            if (isMobile() && joyActive) {
+                const deadZone = 0.15;
+                if (Math.abs(joyX) > deadZone || Math.abs(joyY) > deadZone) {
+                    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    forward.y = 0;
+                    forward.normalize();
+                    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                    right.y = 0;
+                    right.normalize();
+                    // Вперёд/назад (ось Y джойстика)
+                    const moveVec = new THREE.Vector3();
+                    moveVec.addScaledVector(forward, -joyY * moveSpeed * 0.016);
+                    // Влево/вправо (ось X)
+                    moveVec.addScaledVector(right, joyX * moveSpeed * 0.016);
+                    orbitControls.target.add(moveVec);
+                }
+            }
+
             orbitControls.update();
 
-            // Обновление призрака
             if (isGhostActive && ghostObject) {
                 updateGhostSmooth();
             }
 
-            // Вызов дополнительной логики для джойстика
-            if (window._editorAnimate) {
-                window._editorAnimate();
-            }
-
             renderer.render(scene, camera);
         }
-        // Сохраняем оригинальную анимацию для расширения
-        window._editorAnimate = function() {
-            // Управление камерой через джойстик (уже встроено выше)
-        };
+
         animateEditor();
 
         // -----------------------------------------------------------------
-        // 29. РЕСАЙЗ
+        // 31. РЕСАЙЗ
         // -----------------------------------------------------------------
         window.addEventListener('resize', () => {
             const w = container.clientWidth,
@@ -4167,7 +4183,7 @@
             }
         });
 
-        console.log('AWANGARD-engine Mobile Ready');
+        console.log('AWANGARD-engine Mobile Ready (исправлено)');
     </script>
 </body>
 </html>
